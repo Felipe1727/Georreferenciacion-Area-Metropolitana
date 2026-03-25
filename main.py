@@ -1,4 +1,5 @@
 import pandas as pd, re, time, folium, os, shutil, tkinter as tk, sys, unicodedata
+import geopandas as gpd
 from opencage.geocoder import OpenCageGeocode
 from folium.plugins import FastMarkerCluster
 from pathlib import Path
@@ -7,6 +8,8 @@ from tkinter import filedialog
 
 
 # Declaración de variables globales
+RUTA_GEOJSON = Path("data") / "limite_barrio_vereda_cata.geojson"
+
 tipo_vía_urbana = ['CL', 'CR', 'AV', 'CIR', 'DG', 'TV']
 keywords = tipo_vía_urbana.copy() + ['BIS', 'KM']
 equivalente = {
@@ -176,6 +179,7 @@ def main():
     2. Conversión de coordenadas usando reverse geocoding.
     3. Mejora de coordenadas basadas en barrios.
     4. Generación de mapas interactivos.
+    5. Clasificación de coordenadas en barrios y comunas de Medellín.
     """
     if len(sys.argv) == 2:
         if sys.argv[1] == "c":
@@ -251,19 +255,31 @@ def main():
         case 4:
             visualizar(pd.read_excel(Path('coordenadas') / 'coordenadas.xlsx'))
 
+        case 5:
+            ruta_archivo = Path("coordenadas") / "coordenadas.xlsx"
+            if not os.path.exists(ruta_archivo):
+                sys.exit('Error: Necesitas primero procesar las coordenadas (opción 2).')
+
+            df_coords = pd.read_excel(ruta_archivo, index_col=0)
+            df_clasificado = clasificar_barrio_comuna(df_coords)
+            Path("clasificado").mkdir(parents=True, exist_ok=True)
+            df_clasificado.to_excel(Path("clasificado") / "clasificado.xlsx")
+            print("✓ Resultado guardado en clasificado/clasificado.xlsx")
+
 
 def seleccionar_funcionalidad():
     """
     Muestra un menú interactivo para que el usuario seleccione la funcionalidad deseada.
 
     Returns:
-        str: Número de la opción seleccionada ('1'-'4').
+        str: Número de la opción seleccionada ('1'-'5').
     """
     opciones = {
         "1": "estandarización de direcciones",
         "2": "conversión de coordenadas",
         "3": "mejora de coordenadas (sólo si ya se realizó la conversión)",
-        "4": "generación de mapas"
+        "4": "generación de mapas",
+        "5": "clasificación en barrios y comunas (solo Medellín)"
     }
 
     print("Selecciona una funcionalidad:")
@@ -271,12 +287,12 @@ def seleccionar_funcionalidad():
         print(f"{clave}. {descripcion.capitalize()}")
 
     while True:
-        seleccion = input("Ingresa el número de la opción deseada (1-4): ").strip()
+        seleccion = input("Ingresa el número de la opción deseada (1-5): ").strip()
         if seleccion in opciones:
             print(f"Has seleccionado: {opciones[seleccion].capitalize()}")
             return seleccion
         else:
-            print("Opción inválida. Por favor elige 1, 2, 3 o 4.")
+            print("Opción inválida. Por favor elige 1, 2, 3, 4 o 5.")
 
 
 def verificar_y_copiar_archivo_original():
@@ -313,6 +329,7 @@ def estructura_programa():
         Path("original"),
         Path("estandarizado"),
         Path("coordenadas"),
+        Path("clasificado"),
         Path("mapas") / "filtrados",
         Path("llave") / "llave.txt"
     ]
@@ -650,6 +667,130 @@ def reverse_geocoding(df: pd.DataFrame, api_key: str, n = 300) -> pd.DataFrame:
         cols = cols[:idx_comp+1] + geo_cols + cols[idx_comp+1:]
         df = df[cols]
 
+    return df
+
+
+def clasificar_barrio_comuna(df: pd.DataFrame,
+                             ruta_geojson: Path = RUTA_GEOJSON) -> pd.DataFrame:
+    """
+    Clasifica las coordenadas del DataFrame en barrios y comunas de Medellín usando
+    el dataset de polígonos GeoJSON.
+
+    Método primario: Point-in-Polygon mediante `geopandas.sjoin`. Para cada punto
+    geocodificado se determina en qué polígono cae exactamente.
+
+    Método de respaldo: Para los puntos que caigan fuera de todos los polígonos
+    (e.g. por imprecisión en el geocoding), se asigna el polígono cuyo límite
+    sea más cercano al punto. Estos registros se marcan con
+    `clasificacion_aproximada = True`.
+
+    Solo se clasifican los registros cuya columna 'Ciudad Residencia' sea
+    'MEDELLIN - ANTIOQUIA' y que tengan coordenadas válidas. Los demás quedan
+    con NaN en las columnas de clasificación.
+
+    Args:
+        df (pd.DataFrame): DataFrame con columnas 'Latitud', 'Longitud' y
+            opcionalmente 'Ciudad Residencia'.
+        ruta_geojson (Path): Ruta al archivo GeoJSON con los polígonos de
+            barrios y veredas de Medellín.
+
+    Returns:
+        pd.DataFrame: DataFrame original con las siguientes columnas añadidas:
+            - nombre_barrio_geo   : nombre oficial del barrio o vereda
+            - nombre_comuna_geo   : nombre oficial de la comuna
+            - codigo_geo          : código compuesto (comuna + barrio)
+            - indicador_ur_geo    : tipo de zona ('U' urbano, 'R' rural)
+            - sector_geo          : sector geográfico (1-9)
+            - clasificacion_aproximada : True si se usó el método de respaldo
+    """
+    # Cargar y reproyectar el GeoJSON a WGS84 (mismo CRS que las coordenadas de OpenCage)
+    if not ruta_geojson.exists():
+        raise FileNotFoundError(
+            f"No se encontró el archivo GeoJSON de barrios: {ruta_geojson}\n"
+            "Asegúrate de que el archivo 'data/limite_barrio_vereda_cata.geojson' esté presente."
+        )
+    gdf = gpd.read_file(ruta_geojson).to_crs(epsg=4326)
+    # EPSG:9377 — MAGNA-SIRGAS 2018 / Origen Único, sistema oficial de Colombia en metros.
+    # Se usa exclusivamente en el respaldo para calcular distancias precisas al límite del polígono más cercano.
+    gdf_proj = gdf.to_crs(epsg=9377)
+
+    # Determinar qué filas clasificar: solo Medellín con coordenadas válidas
+    mask_coords = df['Latitud'].notna() & df['Longitud'].notna()
+    if 'Ciudad Residencia' in df.columns:
+        mask_ciudad = df['Ciudad Residencia'] == 'MEDELLIN - ANTIOQUIA'
+    else:
+        mask_ciudad = pd.Series(True, index=df.index)
+    mask = mask_ciudad & mask_coords
+
+    # Inicializar columnas de salida con NaN / False
+    cols_nuevas = ['nombre_barrio_geo', 'nombre_comuna_geo', 'codigo_geo',
+                   'indicador_ur_geo', 'sector_geo']
+    for col in cols_nuevas:
+        df[col] = None
+    df['clasificacion_aproximada'] = False
+
+    if not mask.any():
+        print("No se encontraron registros de Medellín con coordenadas válidas.")
+        return df
+
+    df_medellin = df.loc[mask].copy()
+
+    # Construir GeoDataFrame de puntos en EPSG:4326
+    puntos_gdf = gpd.GeoDataFrame(
+        df_medellin,
+        geometry=gpd.points_from_xy(df_medellin['Longitud'], df_medellin['Latitud']),
+        crs='EPSG:4326'
+    )
+
+    # Paso 1: Point-in-Polygon con índice espacial R-tree (maneja Polygon y MultiPolygon)
+    cols_geo = ['nombre_barrio', 'nombre_comuna', 'codigo', 'indicador_ur', 'sector', 'geometry']
+    joined = gpd.sjoin(
+        puntos_gdf[['geometry']],
+        gdf[cols_geo],
+        how='left',
+        predicate='within'
+    )
+    # Eliminar duplicados por si un punto cae en el límite de dos polígonos
+    joined = joined[~joined.index.duplicated(keep='first')]
+
+    matched_mask = joined['nombre_barrio'].notna()
+
+    # Asignar resultados exactos
+    for col_src, col_dst in [('nombre_barrio', 'nombre_barrio_geo'),
+                              ('nombre_comuna', 'nombre_comuna_geo'),
+                              ('codigo',        'codigo_geo'),
+                              ('indicador_ur',  'indicador_ur_geo'),
+                              ('sector',        'sector_geo')]:
+        df.loc[joined.index[matched_mask], col_dst] = joined.loc[matched_mask, col_src].values
+
+    # Paso 2: Respaldo por polígono más cercano para puntos sin coincidencia exacta
+    unmatched_idx = joined.index[~matched_mask]
+    if len(unmatched_idx) > 0:
+        print(f"  {len(unmatched_idx)} punto(s) fuera de los polígonos — "
+              "aplicando respaldo por polígono más cercano.")
+        # Reproyectar al CRS proyectado (metros) para que sjoin_nearest calcule
+        # distancias euclídeas precisas en lugar de distancias geodésicas inexactas.
+        puntos_sin_match = puntos_gdf.loc[unmatched_idx, ['geometry']].to_crs(epsg=9377)
+        nearest = gpd.sjoin_nearest(
+            puntos_sin_match,
+            gdf_proj[['nombre_barrio', 'nombre_comuna', 'codigo', 'indicador_ur', 'sector', 'geometry']],
+            how='left'
+        )
+        # sjoin_nearest puede producir duplicados si dos polígonos están a la misma distancia
+        nearest = nearest[~nearest.index.duplicated(keep='first')]
+        for col_src, col_dst in [('nombre_barrio', 'nombre_barrio_geo'),
+                                  ('nombre_comuna', 'nombre_comuna_geo'),
+                                  ('codigo',        'codigo_geo'),
+                                  ('indicador_ur',  'indicador_ur_geo'),
+                                  ('sector',        'sector_geo')]:
+            df.loc[nearest.index, col_dst] = nearest[col_src].values
+        df.loc[nearest.index, 'clasificacion_aproximada'] = True
+
+    total   = int(mask.sum())
+    exact   = int(matched_mask.sum())
+    approx  = len(unmatched_idx)
+    print(f"✓ Clasificación completada: {exact} exactas, {approx} aproximadas, "
+          f"de {total} registros de Medellín.")
     return df
 
 

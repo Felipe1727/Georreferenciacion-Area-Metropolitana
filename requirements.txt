@@ -1,0 +1,6 @@
+folium
+geopandas>=1.0.0
+opencage
+openpyxl
+pandas
+shapely>=2.0.0
