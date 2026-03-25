@@ -850,11 +850,18 @@ def visualizar(df : pd.DataFrame):
 
 def _generar_heatmaps_clasificados(ruta_clasificado: Path):
     """
-    Genera tres mapas de calor HTML a partir del archivo clasificado:
+    Genera tres mapas de calor HTML a partir del archivo clasificado.
 
-    - mapas/heatmap_comunas.html  : heatmap con capa de comunas (clic muestra conteo de ocurrencias)
-    - mapas/heatmap_barrios.html  : heatmap con capa de barrios (clic muestra conteo de ocurrencias)
-    - mapas/heatmap_combinado.html: heatmap con ambas capas togglables mediante LayerControl
+    La intensidad del heatmap se basa en los conteos reales de ocurrencias por
+    barrio o por comuna: cada polígono aporta un único punto ubicado en su
+    centroide con un peso igual al número de registros que le corresponden.
+    Esto garantiza que la visualización refleje cuántas ocurrencias tiene cada
+    unidad administrativa, en lugar de la densidad de coordenadas geocodificadas.
+
+    Archivos generados:
+    - mapas/heatmap_comunas.html  : heatmap ponderado por comuna + capa de límites
+    - mapas/heatmap_barrios.html  : heatmap ponderado por barrio  + capa de límites
+    - mapas/heatmap_combinado.html: heatmap con ambas capas togglables (LayerControl)
 
     Los conteos de comunas se calculan agrupando por 'nombre_comuna_geo'.
     Los conteos de barrios se calculan agrupando por 'codigo_geo' para manejar
@@ -874,8 +881,6 @@ def _generar_heatmaps_clasificados(ruta_clasificado: Path):
     if df_cl.empty:
         print("El archivo clasificado no contiene registros con barrio y comuna asignados.")
         return
-
-    heat_data = [[row['Latitud'], row['Longitud']] for _, row in df_cl.iterrows()]
 
     # Conteos por comuna
     comunas_count = df_cl.groupby('nombre_comuna_geo').size().to_dict()
@@ -897,14 +902,34 @@ def _generar_heatmaps_clasificados(ruta_clasificado: Path):
     gdf_barrios = gdf[['nombre_barrio', 'nombre_comuna', 'codigo', 'geometry']].copy()
     gdf_barrios['conteo'] = gdf_barrios['codigo'].map(barrios_count).fillna(0).astype(int)
 
+    # --- Construir heat_data ponderado por polígono ---
+    # Cada entrada es [latitud_centroide, longitud_centroide, peso]
+    # El peso es el conteo de ocurrencias de esa unidad administrativa,
+    # por lo que el calor refleja directamente cuántos registros pertenecen
+    # a cada barrio/comuna y no la densidad de coordenadas exactas.
+    heat_data_comunas = [
+        [row.geometry.centroid.y, row.geometry.centroid.x, row['conteo']]
+        for _, row in gdf_comunas.iterrows()
+        if row['conteo'] > 0
+    ]
+
+    heat_data_barrios = [
+        [row.geometry.centroid.y, row.geometry.centroid.x, row['conteo']]
+        for _, row in gdf_barrios.iterrows()
+        if row['conteo'] > 0
+    ]
+
+    max_comunas = max(comunas_count.values()) if comunas_count else 1
+    max_barrios = max(barrios_count.values()) if barrios_count else 1
+
     CENTRO = [6.2464186, -75.5942503]
 
     estilo_comunas = lambda x: {'fillOpacity': 0.0, 'weight': 2, 'color': '#333333'}
     estilo_barrios = lambda x: {'fillOpacity': 0.0, 'weight': 1, 'color': '#0066cc'}
 
-    # --- Mapa 1: Heatmap + capa de comunas ---
+    # --- Mapa 1: Heatmap ponderado por comuna + capa de comunas ---
     m1 = folium.Map(location=CENTRO, zoom_start=12)
-    HeatMap(heat_data).add_to(m1)
+    HeatMap(heat_data_comunas, max_val=max_comunas).add_to(m1)
     folium.GeoJson(
         gdf_comunas,
         name='Comunas',
@@ -916,9 +941,9 @@ def _generar_heatmaps_clasificados(ruta_clasificado: Path):
     ).add_to(m1)
     m1.save(Path('mapas') / 'heatmap_comunas.html')
 
-    # --- Mapa 2: Heatmap + capa de barrios ---
+    # --- Mapa 2: Heatmap ponderado por barrio + capa de barrios ---
     m2 = folium.Map(location=CENTRO, zoom_start=12)
-    HeatMap(heat_data).add_to(m2)
+    HeatMap(heat_data_barrios, max_val=max_barrios).add_to(m2)
     folium.GeoJson(
         gdf_barrios,
         name='Barrios',
@@ -930,12 +955,16 @@ def _generar_heatmaps_clasificados(ruta_clasificado: Path):
     ).add_to(m2)
     m2.save(Path('mapas') / 'heatmap_barrios.html')
 
-    # --- Mapa 3: Heatmap + comunas y barrios con capas togglables ---
+    # --- Mapa 3: Heatmaps ponderados + comunas y barrios con capas togglables ---
     m3 = folium.Map(location=CENTRO, zoom_start=12)
 
-    fg_heat = folium.FeatureGroup(name='Mapa de calor')
-    HeatMap(heat_data).add_to(fg_heat)
-    fg_heat.add_to(m3)
+    fg_heat_comunas = folium.FeatureGroup(name='Mapa de calor (comunas)')
+    HeatMap(heat_data_comunas, max_val=max_comunas).add_to(fg_heat_comunas)
+    fg_heat_comunas.add_to(m3)
+
+    fg_heat_barrios = folium.FeatureGroup(name='Mapa de calor (barrios)')
+    HeatMap(heat_data_barrios, max_val=max_barrios).add_to(fg_heat_barrios)
+    fg_heat_barrios.add_to(m3)
 
     fg_comunas = folium.FeatureGroup(name='Comunas')
     folium.GeoJson(
