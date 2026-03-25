@@ -519,7 +519,7 @@ def añadir_columna_complemento(df : pd.DataFrame):
     Args:
         df (pd.DataFrame): DataFrame con columna 'Direccion de residencia'.
     """
-    df.loc[:, "Direccion de residencia"] =df.loc[:, "Direccion de residencia"].apply(dividir_complemento)
+    df.loc[:, "Direccion de residencia"] = df.loc[:, "Direccion de residencia"].apply(dividir_complemento)
     buffer = []
     for i in df.index:
         buffer.append(df.loc[i, "Direccion de residencia"][1])
@@ -709,6 +709,7 @@ def clasificar_barrio_comuna(df: pd.DataFrame,
             f"No se encontró el archivo GeoJSON de barrios: {ruta_geojson}\n"
             "Asegúrate de que el archivo 'data/limite_barrio_vereda_cata.geojson' esté presente."
         )
+    df = df.loc[df["Ciudad Residencia"] == "MEDELLIN - ANTIOQUIA"].copy()
     gdf = gpd.read_file(ruta_geojson).to_crs(epsg=4326)
     # EPSG:9377 — MAGNA-SIRGAS 2018 / Origen Único, sistema oficial de Colombia en metros.
     # Se usa exclusivamente en el respaldo para calcular distancias precisas al límite del polígono más cercano.
