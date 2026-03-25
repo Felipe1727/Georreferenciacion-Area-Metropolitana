@@ -1,7 +1,7 @@
 import pandas as pd, re, time, folium, os, shutil, tkinter as tk, sys, unicodedata
 import geopandas as gpd
 from opencage.geocoder import OpenCageGeocode
-from folium.plugins import FastMarkerCluster
+from folium.plugins import FastMarkerCluster, HeatMap
 from pathlib import Path
 from tkinter import filedialog
 
@@ -798,6 +798,8 @@ def clasificar_barrio_comuna(df: pd.DataFrame,
 def visualizar(df : pd.DataFrame):
     """
     Genera y guarda mapas HTML con marcadores y clusters basados en coordenadas del DataFrame.
+    Si existe el archivo clasificado/clasificado.xlsx, también genera tres heatmaps:
+    heatmap de comunas, heatmap de barrios y mapa combinado con capas.
 
     Args:
         df (pd.DataFrame): DataFrame con columnas 'Latitud' y 'Longitud'.
@@ -837,6 +839,130 @@ def visualizar(df : pd.DataFrame):
 
     map.save(Path('mapas') / "filtrados" / 'individual_filtrados.html')
     map2.save(Path('mapas') / "filtrados" / 'clusters_filtrados.html')
+
+    ruta_clasificado = Path('clasificado') / 'clasificado.xlsx'
+    if os.path.exists(ruta_clasificado):
+        _generar_heatmaps_clasificados(ruta_clasificado)
+    else:
+        print("Aviso: No se encontró clasificado/clasificado.xlsx. "
+              "Ejecuta primero la clasificación (opción 5) para generar los heatmaps de comunas y barrios.")
+
+
+def _generar_heatmaps_clasificados(ruta_clasificado: Path):
+    """
+    Genera tres mapas de calor HTML a partir del archivo clasificado:
+
+    - mapas/heatmap_comunas.html  : heatmap con capa de comunas (clic muestra conteo de ocurrencias)
+    - mapas/heatmap_barrios.html  : heatmap con capa de barrios (clic muestra conteo de ocurrencias)
+    - mapas/heatmap_combinado.html: heatmap con ambas capas togglables mediante LayerControl
+
+    Los conteos de comunas se calculan agrupando por 'nombre_comuna_geo'.
+    Los conteos de barrios se calculan agrupando por 'codigo_geo' para manejar
+    correctamente los barrios homónimos en distintas comunas.
+
+    Args:
+        ruta_clasificado (Path): Ruta al archivo clasificado.xlsx con columnas
+            'Latitud', 'Longitud', 'nombre_barrio_geo', 'nombre_comuna_geo' y 'codigo_geo'.
+    """
+    try:
+        df_cl = pd.read_excel(ruta_clasificado, index_col=0)
+    except Exception as e:
+        print(f"Error al leer el archivo clasificado: {e}")
+        return
+    df_cl = df_cl.dropna(subset=['Latitud', 'Longitud', 'nombre_barrio_geo', 'nombre_comuna_geo'])
+
+    if df_cl.empty:
+        print("El archivo clasificado no contiene registros con barrio y comuna asignados.")
+        return
+
+    heat_data = [[row['Latitud'], row['Longitud']] for _, row in df_cl.iterrows()]
+
+    # Conteos por comuna
+    comunas_count = df_cl.groupby('nombre_comuna_geo').size().to_dict()
+
+    # Conteos por barrio usando codigo_geo para evitar colisiones entre barrios homónimos
+    barrios_count = df_cl.groupby('codigo_geo').size().to_dict()
+
+    # Cargar y reproyectar GeoJSON a WGS84
+    gdf = gpd.read_file(RUTA_GEOJSON).to_crs(epsg=4326)
+
+    # GeoDataFrame de comunas: disolver polígonos del mismo nombre
+    gdf_comunas = (
+        gdf.dissolve(by='nombre_comuna')
+        .reset_index()[['nombre_comuna', 'geometry']]
+    )
+    gdf_comunas['conteo'] = gdf_comunas['nombre_comuna'].map(comunas_count).fillna(0).astype(int)
+
+    # GeoDataFrame de barrios: cada fila es un barrio único (identificado por codigo)
+    gdf_barrios = gdf[['nombre_barrio', 'nombre_comuna', 'codigo', 'geometry']].copy()
+    gdf_barrios['conteo'] = gdf_barrios['codigo'].map(barrios_count).fillna(0).astype(int)
+
+    CENTRO = [6.2464186, -75.5942503]
+
+    estilo_comunas = lambda x: {'fillOpacity': 0.0, 'weight': 2, 'color': '#333333'}
+    estilo_barrios = lambda x: {'fillOpacity': 0.0, 'weight': 1, 'color': '#0066cc'}
+
+    # --- Mapa 1: Heatmap + capa de comunas ---
+    m1 = folium.Map(location=CENTRO, zoom_start=12)
+    HeatMap(heat_data).add_to(m1)
+    folium.GeoJson(
+        gdf_comunas,
+        name='Comunas',
+        style_function=estilo_comunas,
+        popup=folium.GeoJsonPopup(
+            fields=['nombre_comuna', 'conteo'],
+            aliases=['Comuna', 'Ocurrencias'],
+        ),
+    ).add_to(m1)
+    m1.save(Path('mapas') / 'heatmap_comunas.html')
+
+    # --- Mapa 2: Heatmap + capa de barrios ---
+    m2 = folium.Map(location=CENTRO, zoom_start=12)
+    HeatMap(heat_data).add_to(m2)
+    folium.GeoJson(
+        gdf_barrios,
+        name='Barrios',
+        style_function=estilo_barrios,
+        popup=folium.GeoJsonPopup(
+            fields=['nombre_barrio', 'nombre_comuna', 'conteo'],
+            aliases=['Barrio', 'Comuna', 'Ocurrencias'],
+        ),
+    ).add_to(m2)
+    m2.save(Path('mapas') / 'heatmap_barrios.html')
+
+    # --- Mapa 3: Heatmap + comunas y barrios con capas togglables ---
+    m3 = folium.Map(location=CENTRO, zoom_start=12)
+
+    fg_heat = folium.FeatureGroup(name='Mapa de calor')
+    HeatMap(heat_data).add_to(fg_heat)
+    fg_heat.add_to(m3)
+
+    fg_comunas = folium.FeatureGroup(name='Comunas')
+    folium.GeoJson(
+        gdf_comunas,
+        style_function=estilo_comunas,
+        popup=folium.GeoJsonPopup(
+            fields=['nombre_comuna', 'conteo'],
+            aliases=['Comuna', 'Ocurrencias'],
+        ),
+    ).add_to(fg_comunas)
+    fg_comunas.add_to(m3)
+
+    fg_barrios = folium.FeatureGroup(name='Barrios')
+    folium.GeoJson(
+        gdf_barrios,
+        style_function=estilo_barrios,
+        popup=folium.GeoJsonPopup(
+            fields=['nombre_barrio', 'nombre_comuna', 'conteo'],
+            aliases=['Barrio', 'Comuna', 'Ocurrencias'],
+        ),
+    ).add_to(fg_barrios)
+    fg_barrios.add_to(m3)
+
+    folium.LayerControl(collapsed=False).add_to(m3)
+    m3.save(Path('mapas') / 'heatmap_combinado.html')
+
+    print("✓ Heatmaps generados: heatmap_comunas.html, heatmap_barrios.html, heatmap_combinado.html")
 
 
 def rellenar_por_barrio(df: pd.DataFrame,
