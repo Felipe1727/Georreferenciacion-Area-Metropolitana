@@ -502,16 +502,9 @@ def añadir_columna_complemento(df : pd.DataFrame):
     Args:
         df (pd.DataFrame): DataFrame con columna 'Direccion de residencia'.
     """
-    partes = df["Direccion de residencia"].map(dividir_complemento)
-    direcciones = partes.map(lambda parte: parte[0])
-    complementos = partes.map(lambda parte: parte[1])
-
-    df["Direccion de residencia"] = pd.Series(
-        direcciones.tolist(), index=df.index, dtype="string"
-    )
-    df["Complemento"] = pd.Series(
-        complementos.tolist(), index=df.index, dtype="string"
-    )
+    partes = df["Direccion de residencia"].astype("string").map(dividir_complemento, na_action="ignore")
+    df["Direccion de residencia"] = partes.str[0].astype("string")
+    df["Complemento"] = partes.str[1].astype("string")
 
 
 def dividir_complemento(s : str):
@@ -525,9 +518,6 @@ def dividir_complemento(s : str):
         list: [parte_principal, complemento]. Si no se encuentra un
             complemento, este será una cadena vacía.
     """
-    if not isinstance(s, str):
-        return [s, '']
-
     delay = 0
     try:
         for i in range(len(s)):
