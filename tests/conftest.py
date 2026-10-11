@@ -3,12 +3,15 @@
 Ningun valor procede de `original/`: las direcciones son inventadas e imitan
 las formas reales (via + numeros + complemento + `BARRIO -*- ZONA`).
 """
-import sys
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
-import main
+from georef import archivos, cli, geocodificacion
+from georef.config import cargar_configuracion
+
+RUTA_CONFIGURACION = Path(__file__).resolve().parent.parent / "config" / "georef.toml"
 
 # Direccion de residencia -> Ciudad Residencia
 DIRECCIONES = {
@@ -69,8 +72,8 @@ def sin_red_ni_esperas(monkeypatch):
     Tambien elimina OPENCAGE_API_KEY para que ningun test herede la llave real
     de la sesion; cada test la define explicitamente si la necesita.
     """
-    monkeypatch.setattr(main, "OpenCageGeocode", _prohibido)
-    monkeypatch.setattr(main.time, "sleep", lambda segundos: None)
+    monkeypatch.setattr(geocodificacion, "OpenCageGeocode", _prohibido)
+    monkeypatch.setattr(geocodificacion.time, "sleep", lambda segundos: None)
     monkeypatch.delenv("OPENCAGE_API_KEY", raising=False)
 
 
@@ -78,8 +81,24 @@ def sin_red_ni_esperas(monkeypatch):
 def geocodificador(monkeypatch):
     """Instala un GeocodificadorFalso; el test configura sus respuestas."""
     falso = GeocodificadorFalso()
-    monkeypatch.setattr(main, "OpenCageGeocode", falso)
+    monkeypatch.setattr(geocodificacion, "OpenCageGeocode", falso)
     return falso
+
+
+def escribir_configuracion(ruta, *reemplazos):
+    """Escribe en `ruta` la configuracion incluida con los reemplazos (viejo, nuevo) aplicados una vez."""
+    texto = RUTA_CONFIGURACION.read_text(encoding="utf-8")
+    for viejo, nuevo in reemplazos:
+        assert viejo in texto, viejo
+        texto = texto.replace(viejo, nuevo, 1)
+    Path(ruta).write_text(texto, encoding="utf-8")
+    return Path(ruta)
+
+
+@pytest.fixture
+def configuracion():
+    """Configuracion incluida en el repositorio (config/georef.toml)."""
+    return cargar_configuracion(RUTA_CONFIGURACION)
 
 
 @pytest.fixture
@@ -95,31 +114,42 @@ def df_original():
 
 
 @pytest.fixture
-def directorio_trabajo(tmp_path, monkeypatch, df_original):
-    """Directorio temporal con un Excel sintetico en `original/`.
-
-    Con `original/` no vacio, el dialogo de tkinter nunca se abre; ademas se
-    sustituye `tk.Tk` para que el test falle si se intentara abrir.
-    """
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "original").mkdir()
-    df_original.to_excel(tmp_path / "original" / "base.xlsx", index=False)
+def sin_dialogo(monkeypatch):
+    """Sustituye `tk.Tk` para que el test falle si se intentara abrir el dialogo de tkinter."""
 
     def _sin_dialogo(*args, **kwargs):
         raise AssertionError("No debe abrirse el dialogo de tkinter")
 
-    monkeypatch.setattr(main.tk, "Tk", _sin_dialogo)
+    monkeypatch.setattr(archivos.tk, "Tk", _sin_dialogo)
+
+
+@pytest.fixture
+def directorio_trabajo(tmp_path, monkeypatch, df_original, sin_dialogo):
+    """Directorio temporal con un Excel sintetico en `original/` y la configuracion incluida en `config/`.
+
+    Con `original/` no vacio, el dialogo de tkinter nunca se abre.
+    """
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "original").mkdir()
+    df_original.to_excel(tmp_path / "original" / "base.xlsx", index=False)
+    (tmp_path / "config").mkdir()
+    escribir_configuracion(tmp_path / "config" / "georef.toml")
     return tmp_path
 
 
 @pytest.fixture
 def ejecutar_main(monkeypatch):
-    """Ejecuta main.main() eligiendo `opcion` en el menu."""
+    """Ejecuta georef.cli.main(argv) respondiendo al menu con `opcion` (o la lista de respuestas)."""
 
-    def _ejecutar(opcion=None, argv=("main.py",)):
-        monkeypatch.setattr(sys, "argv", list(argv))
-        respuestas = iter([] if opcion is None else [str(opcion)])
+    def _ejecutar(opcion=None, argv=()):
+        if opcion is None:
+            respuestas = []
+        elif isinstance(opcion, (list, tuple)):
+            respuestas = [str(r) for r in opcion]
+        else:
+            respuestas = [str(opcion)]
+        respuestas = iter(respuestas)
         monkeypatch.setattr("builtins.input", lambda *a, **k: next(respuestas))
-        main.main()
+        cli.main(list(argv))
 
     return _ejecutar

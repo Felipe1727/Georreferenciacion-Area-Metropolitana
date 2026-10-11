@@ -9,7 +9,7 @@ import pytest
 
 from conftest import resultado
 
-COORDENADAS = Path("coordenadas") / "coordenadas.xlsx"
+COORDENADAS = Path("coordenadas") / "coordenadas_area_metropolitana.xlsx"
 RAIZ_REPO = Path(__file__).resolve().parent.parent
 
 
@@ -97,7 +97,7 @@ def test_dotenv_con_variable_vacia_equivale_a_ausente(directorio_trabajo, ejecut
 
 def test_modo_c_sin_variable_termina(con_estandarizacion, ejecutar_main, geocodificador):
     with pytest.raises(SystemExit) as salida:
-        ejecutar_main(argv=("main.py", "c"))
+        ejecutar_main(argv=("c",))
     assert "OPENCAGE_API_KEY" in salida.value.code
     assert not COORDENADAS.exists()
 
@@ -118,7 +118,7 @@ def test_estandarizacion_no_exige_credencial(directorio_trabajo, ejecutar_main):
 
 def test_primera_ejecucion_crea_directorios_sin_llave(directorio_trabajo, ejecutar_main):
     ejecutar_main(1)
-    for directorio in ("original", "estandarizado", "coordenadas", Path("mapas") / "filtrados"):
+    for directorio in ("original", "estandarizado", "coordenadas", Path("mapas") / "area_metropolitana" / "filtrados"):
         assert Path(directorio).is_dir()
     assert not Path("llave").exists()
 

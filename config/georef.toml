@@ -1,0 +1,73 @@
+# Configuración de georef.
+#
+# Este archivo se lee al arrancar y se valida antes de tocar ningún dato: si hay
+# una errata (una clave desconocida, una lista vacía, un valor repetido...), el
+# programa termina y muestra todos los errores juntos.
+# Para usar otro archivo: python -m georef --config <ruta> <subcomando>
+
+# Municipios del área metropolitana: sus registros se estandarizan y geocodifican.
+# Los demás solo se exportan a estandarizado/fuera_area_metropolitana.xlsx.
+# Escríbelos EXACTAMENTE como aparecen en la columna de ciudad del archivo de
+# entrada (mayúsculas, sin tildes, con " - ANTIOQUIA"): un municipio mal escrito
+# no da error, simplemente no coincide con ningún registro.
+[area_metropolitana]
+municipios = [
+    "MEDELLIN - ANTIOQUIA",
+    "ITAGUI - ANTIOQUIA",
+    "BELLO - ANTIOQUIA",
+    "GIRARDOTA - ANTIOQUIA",
+    "BARBOSA - ANTIOQUIA",
+    "COPACABANA - ANTIOQUIA",
+    "ENVIGADO - ANTIOQUIA",
+    "SABANETA - ANTIOQUIA",
+    "CALDAS - ANTIOQUIA",
+    "LA ESTRELLA - ANTIOQUIA",
+]
+
+# Subconjuntos del área metropolitana. Se extraen de las coordenadas ya
+# obtenidas, sin consultar la API:
+#   python -m georef subconjunto --area medellin
+# El nombre (lo que va después de "subconjuntos.") solo puede tener minúsculas
+# sin tildes, dígitos y guiones bajos, porque se usa en los nombres de archivo.
+# Sus municipios deben estar en la lista del área metropolitana.
+[subconjuntos.medellin]
+municipios = ["MEDELLIN - ANTIOQUIA"]
+
+# Columnas del archivo de entrada que usa el programa.
+[columnas]
+ciudad = "Ciudad Residencia"
+direccion = "Direccion de residencia"
+
+# Vocabulario de la estandarización de direcciones.
+[direcciones]
+# Tipos de vía con los que debe empezar una dirección para geocodificarse.
+# Las demás (VEREDA, FINCA...) van a estandarizado/especiales_area_metropolitana.xlsx.
+tipos_via = ["CL", "CR", "AV", "CIR", "DG", "TV"]
+# Palabras que, además de los tipos de vía, forman parte de la dirección y no
+# del complemento.
+palabras_clave = ["BIS", "KM"]
+# Reemplazos que se aplican a cada dirección, EN ESTE ORDEN. El reemplazo se hace
+# por subcadena (también dentro de otras palabras), así que el orden cambia el
+# resultado: "NO" se aplica antes que "NORTE". Es el comportamiento heredado y se
+# corregirá en el cambio ubicacion-por-niveles.
+equivalencias = [
+    ["CALLE", "CL"],
+    ["CARRERA", "CR"],
+    ["CRR", "CR"],
+    ["CRA", "CR"],
+    ["CLL", "CL"],
+    ["NÚMERO", "#"],
+    ["NUMERO", "#"],
+    ["NO", "#"],
+    ["DIAGONAL", "DG"],
+    ["CIRCULAR", "CIR"],
+    ["TRANSVERSAL", "TV"],
+    ["AVENIDA", "AV"],
+    ["NO.", "#"],
+    ["NORTE", "N"],
+    ["SUR", "S"],
+    ["ESTE", "E"],
+    ["ORIENTE", "E"],
+    ["OESTE", "O"],
+    ["OCCIDENTE", "O"],
+]

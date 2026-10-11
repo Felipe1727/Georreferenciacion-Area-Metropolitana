@@ -4,11 +4,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-import main
 from conftest import CENTROIDE_MEDELLIN, resultado
 
 ESTANDARIZADO = Path("estandarizado")
-COORDENADAS = Path("coordenadas") / "coordenadas.xlsx"
+COORDENADAS = Path("coordenadas") / "coordenadas_area_metropolitana.xlsx"
+MAPAS = Path("mapas") / "area_metropolitana"
 ARCHIVOS_ESTANDARIZADOS = {
     "total": ESTANDARIZADO / "total_area_metropolitana.xlsx",
     "principales": ESTANDARIZADO / "principales_area_metropolitana.xlsx",
@@ -84,25 +84,24 @@ def test_opcion_4_genera_mapas(directorio_trabajo, ejecutar_main):
     Path("coordenadas").mkdir(exist_ok=True)
     pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5]}).to_excel(COORDENADAS)
     ejecutar_main(4)
-    assert (Path("mapas") / "individual.html").exists()
-    assert (Path("mapas") / "filtrados" / "clusters_filtrados.html").exists()
+    assert (MAPAS / "individual.html").exists()
+    assert (MAPAS / "filtrados" / "clusters_filtrados.html").exists()
 
 
 def test_modo_c_geocodifica_con_llave_del_entorno(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
     ejecutar_main(1)
     geocodificador.por_defecto = resultado(6.2, -75.5)
-    with pytest.raises(SystemExit) as salida:
-        ejecutar_main(argv=("main.py", "c"))
-    assert salida.value.code is None
+    # Termina sin error (antes con sys.exit() sin codigo; ahora la funcion simplemente retorna).
+    ejecutar_main(argv=("c",))
     assert geocodificador.llaves == ["llave-falsa"]
     assert COORDENADAS.exists()
     assert not Path("llave").exists()
 
 
-def test_modo_c_columna_unnamed_defecto_conocido(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
-    # El modo c lee sin index_col=0 y arrastra el indice como columna.
+def test_modo_c_no_agrega_columna_unnamed(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
+    # Antes, el modo c leia sin index_col=0 y arrastraba el indice como columna (defecto corregido
+    # en modularizacion-config: ahora usa el mismo codigo que la opcion 2).
     ejecutar_main(1)
     geocodificador.por_defecto = resultado(6.2, -75.5)
-    with pytest.raises(SystemExit):
-        ejecutar_main(argv=("main.py", "c"))
-    assert "Unnamed: 0" in pd.read_excel(COORDENADAS, index_col=0).columns
+    ejecutar_main(argv=("c",))
+    assert "Unnamed: 0" not in pd.read_excel(COORDENADAS, index_col=0).columns

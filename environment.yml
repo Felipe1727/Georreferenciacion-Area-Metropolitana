@@ -13,6 +13,7 @@ dependencies:
   - pip
   # Desarrollo
   - pytest>=8
+  - pdoc=16.0.0
   - pip:
       # opencage no se publica en conda-forge
       - opencage==3.3.0

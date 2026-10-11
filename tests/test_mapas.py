@@ -1,22 +1,21 @@
 """Caracterizacion de la generacion de mapas."""
-from pathlib import Path
-
 import pandas as pd
 
-import main
+from georef.mapas import visualizar
 from conftest import CENTROIDE_MEDELLIN
 
-MAPAS = {
-    "individual": Path("mapas") / "individual.html",
-    "clusters": Path("mapas") / "clusters.html",
-    "individual_filtrados": Path("mapas") / "filtrados" / "individual_filtrados.html",
-    "clusters_filtrados": Path("mapas") / "filtrados" / "clusters_filtrados.html",
-}
+
+def rutas_mapas(carpeta):
+    return {
+        "individual": carpeta / "individual.html",
+        "clusters": carpeta / "clusters.html",
+        "individual_filtrados": carpeta / "filtrados" / "individual_filtrados.html",
+        "clusters_filtrados": carpeta / "filtrados" / "clusters_filtrados.html",
+    }
 
 
-def test_visualizar_genera_cuatro_mapas_y_filtra_centroide(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "mapas" / "filtrados").mkdir(parents=True)
+def test_visualizar_genera_cuatro_mapas_y_filtra_centroide(tmp_path):
+    carpeta = tmp_path / "mapas" / "area_metropolitana"
     df = pd.DataFrame(
         {
             "Latitud": [6.2, CENTROIDE_MEDELLIN[0], 6.3, None],
@@ -24,10 +23,17 @@ def test_visualizar_genera_cuatro_mapas_y_filtra_centroide(tmp_path, monkeypatch
         }
     )
 
-    main.visualizar(df)
+    visualizar(df, carpeta)
 
-    assert all(ruta.exists() for ruta in MAPAS.values())
+    mapas = rutas_mapas(carpeta)
+    assert all(ruta.exists() for ruta in mapas.values())
     # Un L.marker( por fila con coordenadas; la fila sin coordenadas se descarta.
-    assert MAPAS["individual"].read_text().count("L.marker(") == 3
+    assert mapas["individual"].read_text().count("L.marker(") == 3
     # El mapa filtrado excluye ademas el centroide de Medellin.
-    assert MAPAS["individual_filtrados"].read_text().count("L.marker(") == 2
+    assert mapas["individual_filtrados"].read_text().count("L.marker(") == 2
+
+
+def test_visualizar_crea_la_carpeta_del_area(tmp_path):
+    carpeta = tmp_path / "mapas" / "medellin"
+    visualizar(pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5]}), carpeta)
+    assert all(ruta.exists() for ruta in rutas_mapas(carpeta).values())
