@@ -3,7 +3,7 @@
 ## Context
 
 - `data/limite_barrio_vereda_cata.geojson`: 349 polígonos (338 `Polygon` y 11 `MultiPolygon`, todos válidos) en EPSG:9377 (MAGNA-SIRGAS Origen Nacional, en metros). Tiene 21 comunas y corregimientos, `codigo` único y 341 valores distintos de `nombre_barrio`. `indicador_ur` vale `U` en 267 polígonos, `R` en 78 y está vacío en 4 (las "Área de Expansión"). La fecha de sincronización es 2025-05-02.
-- Hay 8 nombres repetidos. En 7 de ellos un polígono es urbano y el otro rural; "Suburbano El Llano" tiene dos polígonos rurales.
+- Hay 8 nombres repetidos en el campo original y 9 en 18 polígonos tras normalizar (`El Salado` y `El Salado ` con espacio final). En 8 de ellos un polígono es urbano y el otro rural; "Suburbano El Llano" tiene dos polígonos rurales.
 - En la exploración se midió, con datos reales y en local:
   - 983 de 1284 direcciones siguen el patrón `... <BARRIO> -*- URBANO|RURAL`.
   - De 529 registros de Medellín con texto entre la vía y `-*-`, 366 tienen un nombre oficial como sufijo.
@@ -49,6 +49,7 @@ El notebook se ejecuta de principio a fin sin intervención: `jupyter nbconvert 
 
 Se toma el texto anterior a `-*-` y se quitan la vía y los números iniciales. El barrio declarado es el **sufijo más largo** del resto que coincide, una vez normalizado, con un nombre oficial o con un alias. Lo que queda delante es el complemento.
 - *Alternativa*: buscar cualquier nombre oficial **contenido** en el texto. Recupera más (364 frente a 366 por sufijo) pero produce falsos positivos con nombres cortos contenidos en otros, como `COLON` en `COLONIAL`, y no separa el complemento.
+- Ajustes hechos durante el análisis: los nombres que solo existen como comuna o corregimiento se buscan junto con los barrios (sin esto, `SAN ANTONIO DE PRADO` se asignaba al barrio `PRADO` por su sufijo), y si no hay coincidencia se reintenta sin los números finales (`FATIMA 4`).
 - Esta heurística no ve los prefijos legítimos de un barrio (`SEMINARIO CORDOBA` acaba en `CORDOBA`). El notebook lista los sufijos cuyo token anterior no es una palabra de vivienda conocida (`CASA`, `APTO`, `APARTAMENTO`, `UNIDAD`, `EDIFICIO`, `URBANIZACION`…), para revisarlos a mano.
 
 ### D4. Construcción de la tabla de alias: propuesta automática, decisión humana
@@ -57,12 +58,12 @@ Se toma el texto anterior a `-*-` y se quitan la vía y los números iniciales. 
 - **Una persona decide cada fila.** La columna `nota` registra el motivo: variante ortográfica (`CALAZANS` → Calasanz), nombre popular o artículo (`EL POBLADO`), forma abreviada, etc.
 - **Qué no es un alias:**
   - Un prefijo de vivienda (`APARTAMENTO LAURELES`): ya lo resuelve el sufijo de D3.
-  - **Un nombre de comuna que abarca muchos barrios** (por ejemplo, un nombre que solo existe como comuna): asignarlo a un polígono arbitrario sería inventar precisión. Estos casos se cuentan y se documentan en los hallazgos, como posible nivel COMUNA que valorará `ubicacion-por-niveles`.
+  - **Un nombre de comuna que abarca muchos barrios** (por ejemplo, un nombre que solo existe como comuna): asignarlo a un polígono arbitrario sería inventar precisión. Estos casos se cuentan y se documentan en los hallazgos, como posible nivel COMUNA que valorará `ubicacion-por-niveles`. En la revisión también se decidió tratar como comuna variantes que no son su nombre oficial: `POBLADO` (comuna El Poblado; `EL POBLADO` sigue siendo el barrio) y los sectores `RODEO`, `RODEO ALTO` y `RODEO SUR` (comuna Belén). El notebook las cuenta como "solo comuna" y no entran en la tabla de alias.
 - *Alternativa*: emparejamiento difuso automático en producción, sin tabla. Se descarta porque los errores serían silenciosos y no habría revisión. La tabla hace explícita y auditable cada equivalencia.
 
 ### D5. CSV para los alias, con `codigo` como clave
 
-Se usa `data/alias_barrios.csv` porque es tabular, se edita y se revisa en cualquier hoja de cálculo y los diffs de git son legibles. La clave es `codigo` y no el nombre, porque `codigo` es único incluso entre los 8 nombres repetidos, de modo que un alias puede fijar un polígono concreto. `codigo` se lee siempre como texto para conservar los ceros (`0806`).
+Se usa `data/alias_barrios.csv` porque es tabular, se edita y se revisa en cualquier hoja de cálculo y los diffs de git son legibles. La clave es `codigo` y no el nombre, porque `codigo` es único incluso entre los nombres repetidos, de modo que un alias puede fijar un polígono concreto. `codigo` se lee siempre como texto para conservar los ceros (`0806`).
 - *Alternativa*: TOML o JSON dentro de la futura configuración. Es menos cómodo para decenas o cientos de filas. `modularizacion-config` solo tendrá que apuntar a este archivo.
 
 ### D6. Validación automática con pytest y `json` de la biblioteca estándar

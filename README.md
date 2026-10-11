@@ -26,7 +26,7 @@ conda activate medellin-analysis312
 ### Usando pip
 
 ```bash
-pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-dotenv==1.2.4 "pytest>=8"
+pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-dotenv==1.2.4 geopandas==1.1.3 jupyterlab==4.5.6 "pytest>=8"
 ```
 
 `tkinter` no se instala con pip: viene con Python (en Linux puede requerir el paquete del sistema, por ejemplo `python3-tk`).
@@ -37,6 +37,8 @@ pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-
 - `openpyxl`: lectura y escritura de Excel.
 - `python-dotenv`: lectura de la llave desde el archivo `.env`.
 - `tkinter`: selección de archivos vía GUI.
+- `geopandas`: análisis de los polígonos de barrios (notebooks).
+- `jupyterlab`: entorno para abrir los notebooks.
 - `pytest`: pruebas automáticas (solo desarrollo).
 
 ### Pruebas
@@ -58,6 +60,13 @@ python -m pytest
 │   └── coordenadas.xlsx
 ├── mapas/                   # Mapas HTML generados
 │   └── filtrados/           # Mapas con coordenadas filtradas
+├── data/                    # Datos de referencia versionados
+│   ├── limite_barrio_vereda_cata.geojson   # Polígonos oficiales de barrios y veredas de Medellín
+│   ├── alias_barrios.csv    # Variantes de nombres de barrio -> código oficial (revisada a mano)
+│   └── README.md            # Procedencia y significado de los campos
+├── notebooks/               # Análisis exploratorios (versionados sin salidas)
+│   ├── exploracion_geojson.ipynb
+│   └── hallazgos_geojson.md # Cifras agregadas y recomendaciones
 ├── tests/                   # Pruebas automáticas (pytest)
 ├── .env.example             # Plantilla para el archivo .env con la llave de OpenCage
 └── main.py                  # Script principal
@@ -118,6 +127,20 @@ El script crea automáticamente la estructura de carpetas y permite seleccionar 
 3. **Salida**
    - Archivos Excel en `estandarizado/` y `coordenadas/`.
    - Mapas HTML en `mapas/` y `mapas/filtrados/`.
+
+## Notebooks de análisis
+
+`notebooks/exploracion_geojson.ipynb` analiza el GeoJSON de barrios y mide cuántos barrios declarados coinciden con los oficiales. Ábrelo desde la raíz del repositorio con el entorno activado (la reproyección necesita la base de datos de PROJ que configura `conda activate`):
+
+```bash
+conda activate medellin-analysis312 && jupyter lab
+```
+
+Las secciones 5 a 8 leen `original/` y `coordenadas/coordenadas.xlsx`, que contienen datos personales. **Antes de cada commit** limpia las salidas; el test `tests/test_notebooks_sin_salidas.py` falla si se te olvida:
+
+```bash
+jupyter nbconvert --clear-output --inplace notebooks/exploracion_geojson.ipynb
+```
 
 ## Documentación
 

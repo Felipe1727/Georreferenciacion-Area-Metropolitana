@@ -2,7 +2,7 @@
 
 ## Why
 
-La ubicación por niveles necesita relacionar el barrio que escribe cada estudiante con un polígono oficial de Medellín. Esa ubicación es el nivel BARRIO: el "punto cero del barrio" y la validación de los puntos de la API. El GeoJSON oficial (`data/limite_barrio_vereda_cata.geojson`, de Datos Abiertos Colombia) está versionado pero el código no lo usa, y la lista de barrios escrita a mano en `main.py` es incompleta y en buena parte no es válida.
+La ubicación por niveles necesita relacionar el barrio que escribe cada estudiante con un polígono oficial de Medellín. Esa ubicación es el nivel BARRIO: el "punto cero del barrio" y la validación de los puntos de la API. El GeoJSON oficial (`data/limite_barrio_vereda_cata.geojson`, del portal de datos abiertos GeoMedellín) está versionado pero el código no lo usa, y la lista de barrios escrita a mano en `main.py` es incompleta y en buena parte no es válida.
 
 Una medición preliminar hecha durante la exploración encontró que solo 163 de 492 barrios declarados coinciden exactamente con un nombre oficial. Antes de diseñar ese emparejamiento hay que conocer a fondo la fuente y construir los datos de referencia que lo hagan fiable.
 
@@ -10,7 +10,7 @@ Una medición preliminar hecha durante la exploración encontró que solo 163 de
 
 - Añadir un notebook exploratorio (`notebooks/exploracion_geojson.ipynb`) que analice el GeoJSON: esquema, sistema de coordenadas, cobertura, nombres, duplicados, zonas urbano/rural y puntos representativos. También debe medir cuántos barrios declarados por los estudiantes coinciden con los oficiales y cuántos más se recuperan con alias.
 - Producir una **tabla de alias de barrios** versionada (`data/alias_barrios.csv`) que asigne cada variante escrita por los estudiantes al código oficial (`codigo`) de un polígono, revisada a mano.
-- Fijar y documentar la **convención de normalización de nombres** y las **reglas de desambiguación** de los nombres repetidos (8 nombres en 16 polígonos), usando la zona `URBANO`/`RURAL` de la dirección.
+- Fijar y documentar la **convención de normalización de nombres** y las **reglas de desambiguación** de los nombres repetidos (9 nombres en 18 polígonos tras normalizar), usando la zona `URBANO`/`RURAL` de la dirección.
 - Documentar la **procedencia** del GeoJSON (`data/README.md`): fuente, URL, fecha de descarga y de sincronización, licencia, sistema de coordenadas y significado de cada campo.
 - Registrar los **hallazgos** en un documento de texto con cifras agregadas (`notebooks/hallazgos_geojson.md`): tasas de coincidencia, cobertura estimada del nivel BARRIO, casos ambiguos y la línea base de concordancia entre los puntos actuales de la API y el barrio declarado (que servirá para evaluar la prueba A/B de `ubicacion-por-niveles`).
 - Declarar en `environment.yml` las dependencias que usa el análisis (`geopandas`, `jupyterlab`), ya instaladas en el entorno.

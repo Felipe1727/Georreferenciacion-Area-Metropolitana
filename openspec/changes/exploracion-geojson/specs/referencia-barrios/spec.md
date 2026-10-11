@@ -7,7 +7,7 @@ Define los datos de referencia geográfica de Medellín que usa el sistema para 
 ## ADDED Requirements
 
 ### Requirement: Fuente oficial de polígonos con procedencia documentada
-El repositorio SHALL versionar los polígonos oficiales de barrios y veredas de Medellín en `data/limite_barrio_vereda_cata.geojson` y documentar en `data/README.md` su fuente (Datos Abiertos Colombia), la URL del conjunto, la fecha de descarga, la fecha de sincronización, la licencia, el sistema de coordenadas y el significado de los campos que usa el sistema.
+El repositorio SHALL versionar los polígonos oficiales de barrios y veredas de Medellín en `data/limite_barrio_vereda_cata.geojson` y documentar en `data/README.md` su fuente (portal de datos abiertos GeoMedellín, Alcaldía de Medellín), la URL del conjunto, la fecha de descarga, la fecha de sincronización, la licencia, el sistema de coordenadas y el significado de los campos que usa el sistema.
 
 #### Scenario: Consulta de procedencia
 - **WHEN** alguien abre `data/README.md`
