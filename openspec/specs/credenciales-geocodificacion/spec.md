@@ -7,7 +7,7 @@ Define cómo obtiene el sistema la credencial del proveedor de geocodificación 
 ## Requirements
 
 ### Requirement: Credencial leída del entorno o de un archivo `.env`
-El sistema SHALL obtener la API key del proveedor de geocodificación de la variable `OPENCAGE_API_KEY`, sin espacios al inicio ni al final, en todas las operaciones que consultan al proveedor: conversión de coordenadas (menú y modo `c`) y mejora de coordenadas. La variable se busca primero en el entorno del proceso y, si ahí no está definida o está vacía, en el archivo `.env` del directorio de trabajo. Leer `.env` MUST NOT modificar el entorno del proceso.
+El sistema SHALL obtener la API key del proveedor de geocodificación de la variable `OPENCAGE_API_KEY`, sin espacios al inicio ni al final, en todas las operaciones que consultan al proveedor: conversión de coordenadas (menú, subcomando `geocodificar` y modo `c`) y mejora de coordenadas (menú y subcomando `mejorar`). La variable se busca primero en el entorno del proceso y, si ahí no está definida o está vacía, en el archivo `.env` del directorio de trabajo. Leer `.env` MUST NOT modificar el entorno del proceso.
 
 #### Scenario: Variable definida en el entorno
 - **WHEN** `OPENCAGE_API_KEY` contiene una llave en el entorno y el usuario ejecuta la conversión de coordenadas
@@ -26,7 +26,7 @@ El sistema SHALL obtener la API key del proveedor de geocodificación de la vari
 - **THEN** el sistema usa la llave sin esos espacios
 
 #### Scenario: Modo no interactivo
-- **WHEN** `OPENCAGE_API_KEY` está definida (en el entorno o en `.env`) y el usuario ejecuta `python main.py c`
+- **WHEN** `OPENCAGE_API_KEY` está definida (en el entorno o en `.env`) y el usuario ejecuta `python main.py c` o `python -m georef geocodificar`
 - **THEN** el sistema geocodifica con esa llave y no lee ningún archivo `llave/llave.txt`
 
 ### Requirement: Fallo explícito cuando falta la credencial
@@ -34,7 +34,7 @@ Si `OPENCAGE_API_KEY` no está definida o está vacía (incluido un valor formad
 
 #### Scenario: Variable ausente
 - **WHEN** `OPENCAGE_API_KEY` no está definida en el entorno, no existe `.env` y el usuario elige la conversión de coordenadas
-- **THEN** el sistema termina con código distinto de cero, muestra un mensaje que menciona `OPENCAGE_API_KEY` y `coordenadas/coordenadas.xlsx` queda sin cambios
+- **THEN** el sistema termina con código distinto de cero, muestra un mensaje que menciona `OPENCAGE_API_KEY` y `coordenadas/coordenadas_area_metropolitana.xlsx` queda sin cambios
 
 #### Scenario: Variable vacía
 - **WHEN** `OPENCAGE_API_KEY` contiene solo espacios en el entorno, `.env` no la define y el usuario elige la mejora de coordenadas
@@ -52,8 +52,12 @@ El sistema MUST NOT escribir la API key en ningún archivo (tampoco crear ni mod
 - **THEN** al terminar no existe un directorio `llave/` creado por el sistema y la salida de consola no contiene el valor de la llave
 
 ### Requirement: Operaciones sin proveedor no exigen la credencial
-Las operaciones que no consultan al proveedor (estandarización de direcciones y generación de mapas) SHALL ejecutarse aunque `OPENCAGE_API_KEY` no esté definida.
+Las operaciones que no consultan al proveedor (estandarización de direcciones, generación de mapas y extracción de subconjuntos) SHALL ejecutarse aunque `OPENCAGE_API_KEY` no esté definida.
 
 #### Scenario: Estandarización sin credencial
 - **WHEN** `OPENCAGE_API_KEY` no está definida ni en el entorno ni en `.env` y el usuario elige la estandarización de direcciones
 - **THEN** el sistema genera los archivos de `estandarizado/` con normalidad
+
+#### Scenario: Subconjunto sin credencial
+- **WHEN** `OPENCAGE_API_KEY` no está definida y existe `coordenadas/coordenadas_area_metropolitana.xlsx`
+- **THEN** `python -m georef subconjunto --area medellin` termina con normalidad
