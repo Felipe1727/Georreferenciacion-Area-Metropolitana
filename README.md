@@ -11,35 +11,93 @@ Este repositorio contiene un script en Python (`main.py`) que permite:
 
 ## Requisitos
 
-- Python 3.7+
+- Python 3.12 (el código usa `match`, disponible desde Python 3.10).
 
-### Usando pip:
+### Usando conda (recomendado)
+
+El archivo `environment.yml` declara el entorno `medellin-analysis312` con las versiones exactas:
+
 ```bash
-pip install pandas folium opencage tkinter openpyxl
+conda env create -f environment.yml        # primera vez
+conda env update -f environment.yml -n medellin-analysis312   # para actualizar uno existente
+conda activate medellin-analysis312
 ```
 
-### Usando conda (recomendado si usas Anaconda o Miniconda):
+### Usando pip
+
 ```bash
-conda install -c conda-forge pandas folium opencage geocoder tk openpyxl
+pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-dotenv==1.2.4 "pytest>=8"
 ```
+
+`tkinter` no se instala con pip: viene con Python (en Linux puede requerir el paquete del sistema, por ejemplo `python3-tk`).
 
 - `pandas`: manipulación de datos.
 - `folium`: visualización de mapas.
-- `opencage-geocoder`: reverse geocoding.
+- `opencage`: geocodificación de direcciones con la API de OpenCage.
+- `openpyxl`: lectura y escritura de Excel.
+- `python-dotenv`: lectura de la llave desde el archivo `.env`.
 - `tkinter`: selección de archivos vía GUI.
+- `pytest`: pruebas automáticas (solo desarrollo).
+
+### Pruebas
+
+```bash
+python -m pytest
+```
 
 ## Estructura de Directorios
 
 ```
 ├── original/                # Carpeta para el archivo de entrada (solo un Excel)
 ├── estandarizado/           # Resultados de la estandarización de direcciones
+│   ├── total_area_metropolitana.xlsx
+│   ├── principales_area_metropolitana.xlsx
+│   ├── especiales_area_metropolitana.xlsx
+│   └── fuera_area_metropolitana.xlsx
 ├── coordenadas/             # Salida con coordenadas obtenidas y mejoradas
+│   └── coordenadas.xlsx
 ├── mapas/                   # Mapas HTML generados
 │   └── filtrados/           # Mapas con coordenadas filtradas
-├── llave/                   # Archivo `llave.txt` con la API key de OpenCage
+├── tests/                   # Pruebas automáticas (pytest)
+├── .env.example             # Plantilla para el archivo .env con la llave de OpenCage
 └── main.py                  # Script principal
 ```
 
+Las carpetas de datos (`original/`, `estandarizado/`, `coordenadas/`, `mapas/`) contienen datos personales y, junto con el archivo `.env` (que contiene la llave), están excluidas de git mediante `.gitignore`.
+
+### Migración desde versiones anteriores
+
+Los archivos de `estandarizado/` se llamaban antes `*_área_metropolitana.xlsx` (con tilde) y ya no se leen. Puedes renombrarlos a `*_area_metropolitana.xlsx` o volver a ejecutar la opción 1 (estandarización), que no consume la API. `coordenadas/coordenadas.xlsx` conserva su nombre, así que **no es necesario volver a geocodificar**.
+
+
+## Llave de la API de OpenCage
+
+La conversión y la mejora de coordenadas leen la llave de la variable `OPENCAGE_API_KEY`. El programa la busca primero en las variables de entorno y, si no la encuentra, en el archivo `.env` de la carpeta desde la que se ejecuta (la raíz del proyecto). Nunca la guarda en archivos ni la pide por consola; si falta, termina con un mensaje que explica cómo definirla. La estandarización y la generación de mapas funcionan sin ella.
+
+### Opción recomendada: archivo `.env`
+
+```bash
+cp .env.example .env
+chmod 600 .env        # solo tu usuario puede leerlo
+```
+
+Abre `.env` con un editor y escribe la llave después del `=`:
+
+```
+OPENCAGE_API_KEY=tu-llave
+```
+
+`.env` está en `.gitignore`, así que no se sube al repositorio. Es texto plano: no lo compartas ni lo copies fuera del proyecto. Funciona igual desde la terminal y desde PyCharm, siempre que el directorio de trabajo de la ejecución sea la raíz del proyecto (el valor por defecto).
+
+### Alternativa: variable de entorno
+
+Si `OPENCAGE_API_KEY` está definida en el entorno, tiene prioridad sobre `.env`.
+
+- En la sesión actual de la terminal: `export OPENCAGE_API_KEY=<tu-llave>`
+- De forma persistente en el entorno conda: `conda env config vars set OPENCAGE_API_KEY=<tu-llave> -n medellin-analysis312` y reactivar el entorno.
+- En PyCharm: *Run > Edit Configurations… > Environment variables*.
+
+> Versiones anteriores guardaban la llave en `llave/llave.txt`. Ese archivo ya no se usa: pasa la llave a `.env` y borra la carpeta `llave/`.
 
 ## Uso
 

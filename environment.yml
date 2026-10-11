@@ -1,0 +1,15 @@
+name: medellin-analysis312
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas=3.0.6
+  - folium=0.20.0
+  - openpyxl=3.1.5
+  - python-dotenv=1.2.4
+  - pip
+  # Desarrollo
+  - pytest>=8
+  - pip:
+      # opencage no se publica en conda-forge
+      - opencage==3.3.0

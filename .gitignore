@@ -1,0 +1,20 @@
+# Credenciales y variables de entorno locales
+llave/
+.env
+
+# Datos de entrada y salidas generadas (contienen datos personales)
+original/
+estandarizado/
+coordenadas/
+mapas/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# IDE
+.idea/

@@ -3,12 +3,19 @@ from opencage.geocoder import OpenCageGeocode
 from folium.plugins import FastMarkerCluster
 from pathlib import Path
 from tkinter import filedialog
+from dotenv import dotenv_values
 
 
 
 # Declaración de variables globales
-tipo_vía_urbana = ['CL', 'CR', 'AV', 'CIR', 'DG', 'TV']
-keywords = tipo_vía_urbana.copy() + ['BIS', 'KM']
+# Archivos generados por la estandarización (nombres solo en ASCII)
+ruta_total_am = Path("estandarizado") / "total_area_metropolitana.xlsx"
+ruta_principales_am = Path("estandarizado") / "principales_area_metropolitana.xlsx"
+ruta_especiales_am = Path("estandarizado") / "especiales_area_metropolitana.xlsx"
+ruta_fuera_am = Path("estandarizado") / "fuera_area_metropolitana.xlsx"
+
+tipo_via_urbana = ['CL', 'CR', 'AV', 'CIR', 'DG', 'TV']
+keywords = tipo_via_urbana.copy() + ['BIS', 'KM']
 equivalente = {
     'CALLE' : 'CL',
     'CARRERA' : 'CR',
@@ -31,7 +38,7 @@ equivalente = {
     'OCCIDENTE' : 'O'
 }
 
-área_metropolitana = [
+area_metropolitana = [
     "MEDELLIN - ANTIOQUIA",
     "ITAGUI - ANTIOQUIA",
     "BELLO - ANTIOQUIA",
@@ -173,29 +180,23 @@ def main():
     """
     Función principal que maneja la interfaz de línea de comandos y coordina las funcionalidades disponibles:
     1. Lectura y estandarización de direcciones.
-    2. Conversión de coordenadas usando reverse geocoding.
+    2. Conversión de direcciones a coordenadas (geocodificación directa).
     3. Mejora de coordenadas basadas en barrios.
     4. Generación de mapas interactivos.
     """
     if len(sys.argv) == 2:
         if sys.argv[1] == "c":
-            ruta_archivo = Path("llave") / "llave.txt"
-
-            llave = ""
-
-            with open(ruta_archivo, "r", encoding="utf-8") as archivo:
-                primera_linea = archivo.readline().strip()  # strip() elimina espacios al principio y al final
-
-            llave = primera_linea
+            llave = obtener_llave()
 
             ruta_archivo = Path("coordenadas") / "coordenadas.xlsx"
 
             if os.path.exists(ruta_archivo):
                 df = pd.read_excel(ruta_archivo)
             else:
-                df = pd.read_excel(Path("estandarizado") / "principales_área_metropolitana.xlsx")
-            am_vías_principales_coordenadas = reverse_geocoding(df.copy(), api_key=llave)
-            am_vías_principales_coordenadas.to_excel(Path("coordenadas") / "coordenadas.xlsx")
+                verificar_principales_am()
+                df = pd.read_excel(ruta_principales_am)
+            am_vias_principales_coordenadas = geocodificar_direcciones(df.copy(), api_key=llave)
+            am_vias_principales_coordenadas.to_excel(Path("coordenadas") / "coordenadas.xlsx")
 
             sys.exit()
 
@@ -208,7 +209,7 @@ def main():
         case 1:
             # am -> área metropolitana
             # nam -> no área metropolitana
-            a, b = filtrar_área_metropolitana(df)
+            a, b = filtrar_area_metropolitana(df)
             am = pd.DataFrame(a)
             nam = pd.DataFrame(b)
             # Acondicionamiento básico de ambos DF
@@ -216,15 +217,15 @@ def main():
             nam.loc[:, "Direccion de residencia"] = reemplazar_equivalentes(nam.loc[:, "Direccion de residencia"])
 
             # Filtro de los tipos de vía principales en el DF am
-            am_vías_principales, am_vías_especiales = filtrar_vías_principales(am.copy())
+            am_vias_principales, am_vias_especiales = filtrar_vias_principales(am.copy())
 
             # Estandarización direcciones
-            am_vías_principales = estandarización(am_vías_principales)
+            am_vias_principales = estandarizar(am_vias_principales)
     
-            am.to_excel(Path("estandarizado") / "total_área_metropolitana.xlsx")
-            am_vías_principales.to_excel(Path("estandarizado") / "principales_área_metropolitana.xlsx")
-            am_vías_especiales.to_excel(Path("estandarizado") / "especiales_área_metropolitana.xlsx")
-            nam.to_excel(Path("estandarizado") / "fuera_área_metropolitana.xlsx")
+            am.to_excel(ruta_total_am)
+            am_vias_principales.to_excel(ruta_principales_am)
+            am_vias_especiales.to_excel(ruta_especiales_am)
+            nam.to_excel(ruta_fuera_am)
 
         case 2:
             ruta_archivo = Path("coordenadas") / "coordenadas.xlsx"
@@ -233,9 +234,10 @@ def main():
             if os.path.exists(ruta_archivo):
                 df = pd.read_excel(ruta_archivo, index_col=0)
             else:
-                df = pd.read_excel(Path("estandarizado") / "principales_área_metropolitana.xlsx", index_col=0)
-            am_vías_principales_coordenadas = reverse_geocoding(df.copy(), api_key=llave)
-            am_vías_principales_coordenadas.to_excel(Path("coordenadas") / "coordenadas.xlsx")
+                verificar_principales_am()
+                df = pd.read_excel(ruta_principales_am, index_col=0)
+            am_vias_principales_coordenadas = geocodificar_direcciones(df.copy(), api_key=llave)
+            am_vias_principales_coordenadas.to_excel(Path("coordenadas") / "coordenadas.xlsx")
 
         case 3:
             llave = obtener_llave()
@@ -305,6 +307,15 @@ def verificar_y_copiar_archivo_original():
         else:
             print("No se seleccionó ningún archivo.")
 
+def verificar_principales_am():
+    """
+    Termina el programa con un mensaje si no existe el archivo de direcciones principales estandarizadas,
+    necesario para la conversión de coordenadas cuando aún no hay 'coordenadas/coordenadas.xlsx'.
+    """
+    if not ruta_principales_am.exists():
+        sys.exit(f"Error: No se encontró '{ruta_principales_am.as_posix()}'. "
+                 "Ejecuta primero la estandarización de direcciones (opción 1).")
+
 def estructura_programa():
     """
     Crea la estructura de directorios requerida por el programa si no existen.
@@ -314,7 +325,6 @@ def estructura_programa():
         Path("estandarizado"),
         Path("coordenadas"),
         Path("mapas") / "filtrados",
-        Path("llave") / "llave.txt"
     ]
 
     for ruta in rutas:
@@ -349,57 +359,30 @@ def leer_archivo_original() -> pd.DataFrame:
 
 def obtener_llave():
     """
-    Obtiene la llave API almacenada en 'llave/llave.txt', permite al usuario decidir usarla o ingresar una nueva,
-    y opcionalmente guarda la nueva llave para futuras ejecuciones.
+    Obtiene la llave API de OpenCage de la variable 'OPENCAGE_API_KEY'.
+
+    La busca primero en el entorno del proceso y, si ahí no está o está vacía, en el archivo '.env' del
+    directorio de trabajo, sin modificar el entorno. La llave nunca se guarda en archivos ni se solicita
+    por consola. Si no se encuentra, el programa termina con un mensaje que explica cómo definirla.
 
     Returns:
-        str: La llave API seleccionada o ingresada.
+        str: La llave API sin espacios al inicio ni al final.
     """
-
-    # Ruta del archivo
-    ruta_archivo = Path("llave") / "llave.txt"
-
-    # Asegura que el directorio existe
-    os.makedirs(os.path.dirname(ruta_archivo), exist_ok=True)
-
-    llave = ""
-
-
-    # Paso 1: Verificar si el archivo existe y leer la primera línea
-    if os.path.exists(ruta_archivo):
-        with open(ruta_archivo, "r", encoding="utf-8") as archivo:
-            primera_linea = archivo.readline().strip()  # strip() elimina espacios al principio y al final
-
-        if primera_linea:
-            previa = input("Se encontró una llave en el sistema de una ejecución previa, ¿Desea usarla? (s/n): ").strip().lower()
-            if previa == "s":
-                llave = primera_linea
-            else:
-                llave = input("Ingresa una llave: ").strip()
-                guardar = input("¿Deseas guardar esta llave para la próxima ejecución? (s/n): ").strip().lower()
-                if guardar == "s":
-                    with open(ruta_archivo, "w", encoding="utf-8") as archivo:
-                        archivo.write(llave + "\n")
-        else:
-            # No hay contenido válido en la primera línea
-            llave = input("No se encontró una llave válida. Ingresa una llave: ").strip()
-            guardar = input("¿Deseas guardar esta llave para la próxima ejecución? (s/n): ").strip().lower()
-            if guardar == "s":
-                with open(ruta_archivo, "w", encoding="utf-8") as archivo:
-                    archivo.write(llave + "\n")
-    else:
-        # El archivo no existe
-        llave = input("No se encontró el archivo de llave. Ingresa una llave: ").strip()
-        guardar = input("¿Deseas guardar esta llave para la próxima ejecución? (s/n): ").strip().lower()
-        if guardar == "s":
-            with open(ruta_archivo, "w", encoding="utf-8") as archivo:
-                archivo.write(llave + "\n")
-
-    # Mostrar la llave obtenida
+    llave = os.environ.get("OPENCAGE_API_KEY", "").strip()
+    if not llave:
+        llave = (dotenv_values(".env").get("OPENCAGE_API_KEY") or "").strip()
+    if not llave:
+        sys.exit(
+            "Error: No se encontró la llave de OpenCage en la variable 'OPENCAGE_API_KEY'.\n"
+            "Defínela en un archivo '.env' en la carpeta del proyecto:\n"
+            "  cp .env.example .env    (luego escribe la llave en .env y ejecuta: chmod 600 .env)\n"
+            "o como variable de entorno, por ejemplo:\n"
+            "  export OPENCAGE_API_KEY=<tu-llave>"
+        )
     return llave
 
 
-def filtrar_área_metropolitana(df : pd.DataFrame) -> pd.DataFrame:
+def filtrar_area_metropolitana(df : pd.DataFrame) -> pd.DataFrame:
     """
     Separa el DataFrame en dos listas:
     - Registros cuya 'Ciudad Residencia' pertenece al área metropolitana.
@@ -411,7 +394,7 @@ def filtrar_área_metropolitana(df : pd.DataFrame) -> pd.DataFrame:
     Returns:
         list: [DataFrame_area_metropolitana, DataFrame_fuera_area]
     """
-    a = df.loc[df["Ciudad Residencia"].isin(área_metropolitana)]
+    a = df.loc[df["Ciudad Residencia"].isin(area_metropolitana)]
     return [a, df[~df["Ciudad Residencia"].isin(a["Ciudad Residencia"])]]
     
 
@@ -431,7 +414,7 @@ def reemplazar_equivalentes(s : pd.Series) -> pd.Series:
     return s 
 
 
-def filtrar_vías_principales(df : pd.DataFrame):
+def filtrar_vias_principales(df : pd.DataFrame):
     """
     Filtra el DataFrame para separar las direcciones que comienzan con un tipo de vía principal.
 
@@ -441,7 +424,7 @@ def filtrar_vías_principales(df : pd.DataFrame):
     Returns:
         list: [DataFrame_principales, DataFrame_especiales]
     """
-    s = identificar_vías_principales(pd.Series(df.loc[:, "Direccion de residencia"].copy()))
+    s = identificar_vias_principales(pd.Series(df.loc[:, "Direccion de residencia"].copy()))
     s.dropna(inplace=True)
 
     index_drop = list((set(df.index.copy()) - set(s.index.copy())))
@@ -450,9 +433,9 @@ def filtrar_vías_principales(df : pd.DataFrame):
     return [new_df, df[~df["Direccion de residencia"].isin(new_df["Direccion de residencia"])]]
 
 
-def identificar_vías_principales(s : pd.Series) -> pd.Series:
+def identificar_vias_principales(s : pd.Series) -> pd.Series:
     """
-    Identifica si cada dirección en la Serie comienza con un tipo de vía definido en 'tipo_vía_urbana'.
+    Identifica si cada dirección en la Serie comienza con un tipo de vía definido en 'tipo_via_urbana'.
 
     Args:
         s (pd.Series): Serie de strings con direcciones.
@@ -462,18 +445,18 @@ def identificar_vías_principales(s : pd.Series) -> pd.Series:
     """
     s = s.copy()
     for i in s.index:
-        for vía in tipo_vía_urbana:
-            if str(s.loc[i]).startswith(vía):
-                s.loc[i] = vía
+        for via in tipo_via_urbana:
+            if str(s.loc[i]).startswith(via):
+                s.loc[i] = via
                 break
-        if s.loc[i] not in tipo_vía_urbana:
+        if s.loc[i] not in tipo_via_urbana:
             s.loc[i] = None
 
     #Esta función retorna una serie que tiene el tipo de vía de una dirección o un valor nulo en 
     # caso de que no cumpla esta condición 
     return s
 
-def estandarización(df : pd.DataFrame):
+def estandarizar(df : pd.DataFrame):
     """
     Aplica procesamiento de estandarización de direcciones y añade la columna 'Complemento'.
 
@@ -483,7 +466,7 @@ def estandarización(df : pd.DataFrame):
     Returns:
         pd.DataFrame: DataFrame estandarizado con nueva columna 'Complemento'.
     """
-    añadir_columna_complemento(df)
+    agregar_columna_complemento(df)
     df.loc[:, "Direccion de residencia"] = df.loc[:, "Direccion de residencia"].apply(format_dir)
     
     # Reordenar columnas: mover "Complemento" al lado de "Direccion de residencia"
@@ -495,7 +478,7 @@ def estandarización(df : pd.DataFrame):
         df = df[columnas]
     return df
 
-def añadir_columna_complemento(df : pd.DataFrame):
+def agregar_columna_complemento(df : pd.DataFrame):
     """
     Separa la dirección en base al complemento y añade la columna 'Complemento' al DataFrame.
 
@@ -554,40 +537,40 @@ def format_dir(s):
 
     temp = ''
     part = 0
-    num_aldready = False
-    letter_aldready = False
-    via_aldready = False
+    num_already = False
+    letter_already = False
+    via_already = False
 
     for match in matches:
-        if match in tipo_vía_urbana:
-            if not via_aldready:
+        if match in tipo_via_urbana:
+            if not via_already:
                 temp = temp + f'{match} '
-                via_aldready = True
+                via_already = True
         elif match in keywords:
             temp = temp + f'{match} ' if temp.endswith(' ') or temp == '' else temp + f' {match} '
         elif match.isnumeric():
-            if num_aldready:
+            if num_already:
                 part += 1
                 match part:
                     case 1:
                         temp = temp = temp + '#' if temp.endswith(' ') else temp + ' #'
                     case 2:
                         temp = temp = temp + '-'
-                num_aldready = False
-                letter_aldready = False
+                num_already = False
+                letter_already = False
             temp = temp + f'{match}'
-            num_aldready = True
+            num_already = True
         else:
-            temp = temp + f'{match}' if not letter_aldready else temp + f' {match}'
-            letter_aldready = True
+            temp = temp + f'{match}' if not letter_already else temp + f' {match}'
+            letter_already = True
     
     return temp
 
 
 
-def reverse_geocoding(df: pd.DataFrame, api_key: str, n = 300) -> pd.DataFrame:
+def geocodificar_direcciones(df: pd.DataFrame, api_key: str, n = 300) -> pd.DataFrame:
     """
-    Realiza reverse geocoding sobre un número exacto de registros (n), partiendo desde:
+    Realiza geocodificación directa (dirección -> coordenadas) sobre un número exacto de registros (n), partiendo desde:
     - El primer registro si no existen columnas 'Latitud' y 'Longitud'.
     - El primer registro donde 'Latitud' o 'Longitud' están vacíos, si ya existen.
 
@@ -665,17 +648,17 @@ def visualizar(df : pd.DataFrame):
     longitudes = [a['Longitud'] for a in df.to_dict('records')]
     data = list(zip(latitudes, longitudes))
 
-    map = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
+    mapa_marcadores = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
     for a in df.index:
         coordenada = (df['Latitud'][a], df['Longitud'][a])
-        folium.Marker(coordenada).add_to(map)
+        folium.Marker(coordenada).add_to(mapa_marcadores)
 
-    map2 = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
+    mapa_clusters = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
 
-    FastMarkerCluster(data=data).add_to(map2)
+    FastMarkerCluster(data=data).add_to(mapa_clusters)
 
-    map.save(Path('mapas') / 'individual.html')
-    map2.save(Path('mapas') / 'clusters.html')
+    mapa_marcadores.save(Path('mapas') / 'individual.html')
+    mapa_clusters.save(Path('mapas') / 'clusters.html')
 
     df_filtrado = df[
         ~((df["Latitud"] == 6.25184) & (df["Longitud"] == -75.56359))
@@ -684,17 +667,17 @@ def visualizar(df : pd.DataFrame):
     longitudes = [a['Longitud'] for a in df_filtrado.to_dict('records')]
     data = list(zip(latitudes, longitudes))
 
-    map = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
+    mapa_marcadores = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
     for a in df_filtrado.index:
         coordenada = (df_filtrado['Latitud'][a], df_filtrado['Longitud'][a])
-        folium.Marker(coordenada).add_to(map)
+        folium.Marker(coordenada).add_to(mapa_marcadores)
 
-    map2 = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
+    mapa_clusters = folium.Map(location=[6.2464186, -75.5942503], zoom_start=12)
 
-    FastMarkerCluster(data=data).add_to(map2)
+    FastMarkerCluster(data=data).add_to(mapa_clusters)
 
-    map.save(Path('mapas') / "filtrados" / 'individual_filtrados.html')
-    map2.save(Path('mapas') / "filtrados" / 'clusters_filtrados.html')
+    mapa_marcadores.save(Path('mapas') / "filtrados" / 'individual_filtrados.html')
+    mapa_clusters.save(Path('mapas') / "filtrados" / 'clusters_filtrados.html')
 
 
 def rellenar_por_barrio(df: pd.DataFrame,
