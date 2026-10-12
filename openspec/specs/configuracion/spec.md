@@ -7,7 +7,7 @@ Define el archivo de configuración del proyecto: dónde está, qué valores del
 ## Requirements
 
 ### Requirement: Archivo de configuración versionado
-El sistema SHALL leer su configuración de `config/georef.toml`, un archivo TOML en UTF-8 versionado en el repositorio. Debe contener la lista de municipios del área metropolitana, los subconjuntos con nombre, los nombres de las columnas de ciudad y dirección del archivo de entrada, y el vocabulario de direcciones: tipos de vía, palabras clave y equivalencias.
+El sistema SHALL leer su configuración de `config/georef.toml`, un archivo TOML en UTF-8 versionado en el repositorio. Debe contener la lista de municipios del área metropolitana, los subconjuntos con nombre, los nombres de las columnas de ciudad y dirección del archivo de entrada, el vocabulario de direcciones (tipos de vía, palabras clave y equivalencias) y las referencias geográficas (rutas del GeoJSON y de las tablas de alias, y el municipio al que corresponden los polígonos).
 
 #### Scenario: Ejecución con la configuración incluida
 - **WHEN** el usuario ejecuta cualquier operación sin indicar otra configuración
@@ -16,17 +16,6 @@ El sistema SHALL leer su configuración de `config/georef.toml`, un archivo TOML
 #### Scenario: Valores y texto en español
 - **WHEN** la configuración contiene municipios, equivalencias o columnas con tildes (por ejemplo `NÚMERO`)
 - **THEN** el sistema los usa tal como están escritos, sin quitar tildes ni otros caracteres
-
-### Requirement: La configuración incluida reproduce el comportamiento anterior
-Los valores de `config/georef.toml` SHALL ser los que tenía el código antes de este cambio: los mismos 10 municipios del área metropolitana, los mismos tipos de vía y palabras clave, y las mismas equivalencias en el mismo orden. Con esa configuración, la estandarización MUST producir los mismos registros y valores que antes.
-
-#### Scenario: Misma estandarización
-- **WHEN** se estandariza un mismo archivo de entrada antes y después del cambio, con la configuración incluida
-- **THEN** los cuatro archivos de `estandarizado/` tienen las mismas filas, columnas y valores
-
-#### Scenario: El orden de las equivalencias se conserva
-- **WHEN** se estandariza la dirección `CR 50 NORTE 30 20` con la configuración incluida
-- **THEN** el resultado es el mismo que antes del cambio, porque las equivalencias se aplican en el orden en que aparecen en la configuración
 
 ### Requirement: Cambios del dominio sin editar el código
 Añadir o quitar un municipio del área metropolitana, definir un subconjunto o cambiar el vocabulario de direcciones SHALL requerir solo editar la configuración.
@@ -83,3 +72,25 @@ Si el archivo de entrada no tiene alguna de las columnas de ciudad o dirección 
 #### Scenario: Columna ausente
 - **WHEN** la configuración indica la columna de ciudad `Ciudad Residencia` y el archivo de entrada no la tiene
 - **THEN** el sistema termina con un mensaje que nombra `Ciudad Residencia` y `estandarizado/` queda sin cambios
+
+### Requirement: Vocabulario incluido
+La configuración incluida SHALL conservar los 10 municipios del área metropolitana, los tipos de vía, las palabras clave y las equivalencias que tenía el código antes de `modularizacion-config`, más la equivalencia `CRRA` → `CR`, que aparece en los datos. La forma de aplicar las equivalencias la define la especificación `normalizacion-direcciones`.
+
+#### Scenario: Mismos valores
+- **WHEN** se compara la configuración incluida con las constantes que tenía `main.py`
+- **THEN** los municipios, tipos de vía y palabras clave son los mismos, y las equivalencias son las mismas más `CRRA` → `CR`
+
+### Requirement: Referencias geográficas configurables
+La sección `[referencia]` SHALL indicar las rutas del GeoJSON de barrios, de `alias_barrios.csv` y de `alias_comunas.csv`, y el municipio con polígonos, que MUST pertenecer al área metropolitana. Si alguno de esos archivos no existe al estandarizar, el sistema MUST terminar con un mensaje que nombre el archivo, sin escribir salidas.
+
+#### Scenario: Referencias incluidas
+- **WHEN** se usa la configuración incluida
+- **THEN** el GeoJSON es `data/limite_barrio_vereda_cata.geojson`, las tablas son `data/alias_barrios.csv` y `data/alias_comunas.csv`, y el municipio con polígonos es `MEDELLIN - ANTIOQUIA`
+
+#### Scenario: Municipio con polígonos fuera del área
+- **WHEN** el municipio con polígonos no está en la lista del área metropolitana
+- **THEN** la validación de la configuración falla con un mensaje que nombra `referencia.municipio_con_poligonos`
+
+#### Scenario: Archivo de referencia inexistente
+- **WHEN** la ruta del GeoJSON apunta a un archivo que no existe y el usuario ejecuta la estandarización
+- **THEN** el sistema termina con código distinto de cero, el mensaje nombra la ruta y `estandarizado/` queda sin cambios

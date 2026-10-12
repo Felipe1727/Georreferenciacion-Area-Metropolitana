@@ -18,11 +18,15 @@ La estandarización SHALL separar los registros según el municipio de residenci
 - **THEN** el registro va a `fuera_area_metropolitana.xlsx`
 
 ### Requirement: Los registros de fuera solo se exportan
-Los registros de fuera del área metropolitana SHALL exportarse a `estandarizado/fuera_area_metropolitana.xlsx` con las mismas transformaciones de texto que hoy, y MUST NOT enviarse al proveedor de geocodificación en ninguna operación.
+Los registros de fuera del área metropolitana SHALL exportarse a `estandarizado/fuera_area_metropolitana.xlsx` con la misma normalización que los del área metropolitana (dirección, complemento y zona, sin barrio ni comuna), y MUST NOT enviarse al proveedor de geocodificación en ninguna operación.
 
 #### Scenario: Geocodificación tras estandarizar
 - **WHEN** el usuario estandariza y después ejecuta la conversión de coordenadas
 - **THEN** ninguna consulta al proveedor corresponde a un registro de `fuera_area_metropolitana.xlsx`
+
+#### Scenario: Normalización de un registro de fuera
+- **WHEN** se estandariza `CR 5 10 20 CENTRO`, de Montería
+- **THEN** en `fuera_area_metropolitana.xlsx` su `Direccion de residencia` es `CR 5 #10-20`, su `Complemento` es `CENTRO` y `Barrio`, `Codigo barrio` y `Comuna` quedan vacíos
 
 ### Requirement: Subconjuntos con nombre del área metropolitana
 La configuración SHALL poder definir subconjuntos con nombre, cada uno con una lista de municipios. El nombre MUST estar formado solo por letras minúsculas ASCII, dígitos y guiones bajos, y no puede ser `area_metropolitana`. Cada municipio de un subconjunto MUST pertenecer al área metropolitana. Si no se cumple, la validación de la configuración falla.
