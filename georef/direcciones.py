@@ -1,17 +1,27 @@
-"""Separación por área y estandarización de direcciones.
+"""Separación por área y normalización de direcciones.
 
 Funciones puras sobre Series y DataFrames: no leen ni escriben archivos. El
 vocabulario y los nombres de columna llegan como parámetros desde la configuración.
 
-La lógica es la heredada de `main.py`, incluidos sus defectos conocidos (el reemplazo
-de equivalencias por subcadena convierte `URBANO` en `URBA#`); los corrige el cambio
-`ubicacion-por-niveles`.
+La normalización divide el texto de cada dirección en vía y numeración, complemento,
+barrio, código de barrio, comuna y zona (especificación `normalizacion-direcciones`).
+Separa primero la zona y el lugar (barrio o comuna), aplica las equivalencias solo a
+palabras completas del resto y conserva el separador y el formato heredados
+(`dividir_complemento` y `format_dir`).
 """
+import functools
 import re
 
 import pandas as pd
 
-from georef.config import VocabularioDirecciones
+from georef.config import Configuracion, VocabularioDirecciones
+from georef.referencia import IndiceLugares, normalizar
+
+SEPARADOR_ZONA = "-*-"
+ZONAS = ("URBANO", "RURAL")
+
+# Columnas que la normalización escribe a continuación de la columna de dirección.
+COLUMNAS_NORMALIZADAS = ["Complemento", "Barrio", "Codigo barrio", "Comuna", "Zona"]
 
 
 def separar_por_area(df: pd.DataFrame, municipios, columna: str) -> list:
@@ -34,42 +44,48 @@ def separar_por_area(df: pd.DataFrame, municipios, columna: str) -> list:
 
 def reemplazar_equivalentes(s: pd.Series, equivalencias) -> pd.Series:
     """
-    Reemplaza en una Serie de direcciones las palabras clave por sus equivalentes abreviados.
+    Pasa a mayúsculas una Serie de textos y reemplaza las palabras completas por sus abreviaturas.
 
-    Las equivalencias se aplican en orden y por subcadena (comportamiento heredado).
+    Una palabra solo se reemplaza si coincide entera con una equivalencia (`NORTE` -> `N`), nunca
+    dentro de otra palabra (`URBANO` no cambia). El orden de las equivalencias no importa.
 
     Args:
         s (pd.Series): Serie de strings con direcciones.
-        equivalencias: Pares (palabra, abreviatura), en el orden en que se aplican.
+        equivalencias: Pares (palabra, abreviatura).
 
     Returns:
-        pd.Series: Serie con direcciones normalizadas en mayúsculas y abreviadas.
+        pd.Series: Serie en mayúsculas con las palabras abreviadas.
     """
-    s = s.apply(str.upper)
-    for palabra, abreviatura in equivalencias:
-        s = s.str.replace(palabra, abreviatura)
-    return s
+    tabla = dict(equivalencias)
+    return s.apply(lambda texto: " ".join(abreviar(_texto(texto).upper().split(), tabla)))
 
 
-def filtrar_vias_principales(df: pd.DataFrame, columna: str, tipos_via) -> list:
+# Letras que forman una palabra: dígitos, signos y espacios la delimitan (CALLE31A, SUR-15, CLL.39).
+LETRAS = "A-ZÁÉÍÓÚÜÑ"
+
+
+def abreviar(palabras, tabla) -> list:
     """
-    Filtra el DataFrame para separar las direcciones que comienzan con un tipo de vía principal.
+    Reemplaza en cada elemento de `palabras` las palabras completas que tienen equivalencia.
 
-    Args:
-        df (pd.DataFrame): DataFrame con la columna de dirección.
-        columna (str): Nombre de la columna de dirección.
-        tipos_via: Tipos de vía principales.
-
-    Returns:
-        list: [DataFrame_principales, DataFrame_especiales]
+    Una palabra es una secuencia de letras: `CALLE31A` -> `CL31A` y `SUR-15` -> `S-15`, pero
+    `URBANO` o `SURAMERICA` no cambian. Las equivalencias más largas se aplican primero, así que el
+    orden de la configuración no importa. Nunca se añaden ni se quitan espacios, de modo que se
+    conserva el número de elementos.
     """
-    s = identificar_vias_principales(pd.Series(df.loc[:, columna].copy()), tipos_via)
-    s.dropna(inplace=True)
+    patron = _patron_equivalencias(tuple(sorted(tabla, key=len, reverse=True)))
+    return [patron.sub(lambda m: tabla[m.group(0)], palabra) for palabra in palabras] if tabla else list(palabras)
 
-    index_drop = list((set(df.index.copy()) - set(s.index.copy())))
-    new_df = df.drop(index_drop, inplace=False)
 
-    return [new_df, df[~df[columna].isin(new_df[columna])]]
+@functools.lru_cache(maxsize=8)
+def _patron_equivalencias(claves):
+    alternativas = "|".join(re.escape(clave) for clave in claves)
+    return re.compile(f"(?<![{LETRAS}])(?:{alternativas})(?![{LETRAS}])")
+
+
+def _texto(valor) -> str:
+    """El valor como texto, o vacío si falta."""
+    return "" if valor is None or (isinstance(valor, float) and pd.isna(valor)) else str(valor)
 
 
 def identificar_vias_principales(s: pd.Series, tipos_via) -> pd.Series:
@@ -95,47 +111,6 @@ def identificar_vias_principales(s: pd.Series, tipos_via) -> pd.Series:
     # Esta función retorna una serie que tiene el tipo de vía de una dirección o un valor nulo en
     # caso de que no cumpla esta condición
     return s
-
-
-def estandarizar(df: pd.DataFrame, vocabulario: VocabularioDirecciones, columna: str) -> pd.DataFrame:
-    """
-    Aplica procesamiento de estandarización de direcciones y añade la columna 'Complemento'.
-
-    Args:
-        df (pd.DataFrame): DataFrame con la columna de dirección.
-        vocabulario (VocabularioDirecciones): Tipos de vía y palabras clave.
-        columna (str): Nombre de la columna de dirección.
-
-    Returns:
-        pd.DataFrame: DataFrame estandarizado con nueva columna 'Complemento'.
-    """
-    agregar_columna_complemento(df, vocabulario.palabras_clave_completas, columna)
-    df.loc[:, columna] = df.loc[:, columna].apply(format_dir, vocabulario=vocabulario)
-
-    # Reordenar columnas: mover "Complemento" al lado de la columna de dirección
-    columnas = df.columns.tolist()
-    if "Complemento" in columnas and columna in columnas:
-        columnas.remove("Complemento")
-        idx = columnas.index(columna) + 1
-        columnas.insert(idx, "Complemento")
-        df = df[columnas]
-    return df
-
-
-def agregar_columna_complemento(df: pd.DataFrame, palabras_clave, columna: str):
-    """
-    Separa la dirección en base al complemento y añade la columna 'Complemento' al DataFrame.
-
-    Args:
-        df (pd.DataFrame): DataFrame con la columna de dirección.
-        palabras_clave: Tipos de vía y palabras clave que forman parte de la dirección.
-        columna (str): Nombre de la columna de dirección.
-    """
-    partes = df[columna].astype("string").map(
-        lambda s: dividir_complemento(s, palabras_clave), na_action="ignore"
-    )
-    df[columna] = partes.str[0].astype("string")
-    df["Complemento"] = partes.str[1].astype("string")
 
 
 def dividir_complemento(s: str, palabras_clave):
@@ -218,3 +193,90 @@ def format_dir(s, vocabulario: VocabularioDirecciones):
             letter_already = True
 
     return temp
+
+
+def normalizar_direccion(texto, vocabulario: VocabularioDirecciones, indice: IndiceLugares | None = None) -> dict:
+    """
+    Divide el texto de una dirección en sus partes normalizadas.
+
+    Pasos: (1) la zona sale de lo que sigue a `-*-`; (2) si hay `indice`, se reconoce al final el
+    barrio o la comuna; (3) al resto se le aplican las equivalencias palabra a palabra; (4)
+    `dividir_complemento` separa la vía del complemento y (5) `format_dir` da formato a la vía;
+    (6) el complemento recupera sus palabras originales cuando el corte cae entre palabras.
+    Ninguna palabra se pierde: los números que siguen al barrio y el texto no reconocido tras
+    `-*-` van al final del complemento.
+
+    Args:
+        texto: Dirección tal como viene en el archivo de entrada.
+        vocabulario (VocabularioDirecciones): Tipos de vía, palabras clave y equivalencias.
+        indice (IndiceLugares | None): Índice de lugares; None para municipios sin polígonos.
+
+    Returns:
+        dict: Claves `direccion`, `principal` (si empieza por un tipo de vía) y las de
+            `COLUMNAS_NORMALIZADAS`, con None en las partes vacías.
+    """
+    tabla = dict(vocabulario.equivalencias)
+    antes, separador, despues = _texto(texto).upper().partition(SEPARADOR_ZONA)
+    zona = normalizar(despues) if separador else ""
+    extra = []
+    if zona not in ZONAS:
+        extra = despues.split()
+        zona = ""
+
+    palabras = antes.split()
+    lugar = indice.reconocer(palabras, zona or None) if indice is not None and palabras else None
+    resto = palabras[:lugar.inicio] if lugar else palabras
+    numeros_finales = palabras[lugar.fin:] if lugar else []
+
+    abreviadas = abreviar(resto, tabla)
+    texto_abreviado = " ".join(abreviadas)
+    # El espacio final evita que dividir_complemento falle (IndexError) cuando el texto acaba en
+    # una palabra de dos letras, caso en el que devolvía todo como dirección.
+    direccion, complemento = ([parte.strip() for parte in
+                               dividir_complemento(texto_abreviado + " ", vocabulario.palabras_clave_completas)]
+                              if texto_abreviado else ["", ""])
+    n = len(complemento.split())
+    if n and " ".join(abreviadas[len(abreviadas) - n:]) == complemento:
+        palabras_complemento = resto[len(resto) - n:]
+    else:
+        palabras_complemento = complemento.split()
+
+    principal = identificar_vias_principales(
+        pd.Series([" ".join(abreviar(palabras, tabla))]), vocabulario.tipos_via
+    ).notna().iloc[0]
+    return {
+        "direccion": format_dir(direccion, vocabulario) or None,
+        "principal": bool(principal),
+        "Complemento": " ".join(palabras_complemento + numeros_finales + extra) or None,
+        "Barrio": (lugar.barrio if lugar else "") or None,
+        "Codigo barrio": (lugar.codigo if lugar else "") or None,
+        "Comuna": (lugar.comuna if lugar else "") or None,
+        "Zona": zona or None,
+    }
+
+
+def normalizar_direcciones(df: pd.DataFrame, configuracion: Configuracion, indice: IndiceLugares):
+    """
+    Normaliza la dirección de todos los registros de `df`.
+
+    El barrio y la comuna solo se reconocen en los registros del municipio con polígonos. Las
+    columnas de `COLUMNAS_NORMALIZADAS` se colocan a continuación de la columna de dirección;
+    las demás columnas y el índice se conservan.
+
+    Returns:
+        tuple: (DataFrame normalizado, Serie booleana que indica los registros de vía principal).
+    """
+    columna = configuracion.columnas.direccion
+    con_poligonos = df[configuracion.columnas.ciudad] == configuracion.referencia.municipio_con_poligonos
+    partes = [
+        normalizar_direccion(texto, configuracion.direcciones, indice if usar_indice else None)
+        for texto, usar_indice in zip(df[columna], con_poligonos)
+    ]
+    resultado = df.drop(columns=[c for c in COLUMNAS_NORMALIZADAS if c in df.columns])
+    resultado[columna] = pd.Series([p["direccion"] for p in partes], index=df.index, dtype=object)
+    posicion = resultado.columns.get_loc(columna) + 1
+    for desplazamiento, nombre in enumerate(COLUMNAS_NORMALIZADAS):
+        resultado.insert(posicion + desplazamiento, nombre,
+                         pd.Series([p[nombre] for p in partes], index=df.index, dtype=object))
+    principal = pd.Series([p["principal"] for p in partes], index=df.index, dtype=bool)
+    return resultado, principal

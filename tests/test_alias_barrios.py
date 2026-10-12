@@ -1,24 +1,16 @@
 """Invariantes de data/alias_barrios.csv frente al GeoJSON oficial (especificación referencia-barrios)."""
 import csv
 import json
-import re
-import unicodedata
 from pathlib import Path
 
 import pytest
+
+from georef.referencia import normalizar
 
 RAIZ = Path(__file__).resolve().parent.parent
 RUTA_GEOJSON = RAIZ / "data" / "limite_barrio_vereda_cata.geojson"
 RUTA_ALIAS = RAIZ / "data" / "alias_barrios.csv"
 COLUMNAS = ["alias", "codigo", "nombre_oficial", "nota"]
-
-
-def normalizar(texto):
-    """Misma convención que notebooks/exploracion_geojson.ipynb (sección 2)."""
-    descompuesto = unicodedata.normalize("NFKD", str(texto).upper())
-    sin_diacriticos = "".join(c for c in descompuesto if not unicodedata.combining(c))
-    sin_puntuacion = re.sub(r"[^\w\s]|_", " ", sin_diacriticos)
-    return re.sub(r"\s+", " ", sin_puntuacion).strip()
 
 
 @pytest.fixture(scope="module")

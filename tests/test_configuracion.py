@@ -64,7 +64,8 @@ def test_configuracion_incluida_reproduce_las_constantes_anteriores():
     assert list(configuracion.area_metropolitana) == AREA_METROPOLITANA_ANTERIOR
     assert list(configuracion.direcciones.tipos_via) == TIPO_VIA_URBANA_ANTERIOR
     assert list(configuracion.direcciones.palabras_clave_completas) == KEYWORDS_ANTERIOR
-    assert list(configuracion.direcciones.equivalencias) == list(EQUIVALENTE_ANTERIOR.items())
+    # Se conservan todas las equivalencias anteriores; normalizacion-direcciones añadió CRRA.
+    assert set(configuracion.direcciones.equivalencias) == set(EQUIVALENTE_ANTERIOR.items()) | {("CRRA", "CR")}
     assert configuracion.columnas.ciudad == "Ciudad Residencia"
     assert configuracion.columnas.direccion == "Direccion de residencia"
     assert dict(configuracion.subconjuntos) == {"medellin": ("MEDELLIN - ANTIOQUIA",)}
@@ -142,7 +143,7 @@ def test_equivalencia_repetida(tmp_path):
 def test_equivalencia_mal_formada(tmp_path):
     ruta = configuracion_modificada(tmp_path, ('["SUR", "S"],', '["SUR"],'))
     errores, _ = errores_de(ruta)
-    assert errores[0].startswith("direcciones.equivalencias[14]: debe ser un par")
+    assert errores[0].startswith("direcciones.equivalencias[15]: debe ser un par")  # SUR, tras añadir CRRA
 
 
 def test_texto_vacio(tmp_path):
@@ -189,3 +190,25 @@ def test_nuevo_subconjunto_solo_con_configuracion(tmp_path):
         ("[columnas]", '[subconjuntos.sur]\nmunicipios = ["ENVIGADO - ANTIOQUIA", "SABANETA - ANTIOQUIA"]\n\n[columnas]'),
     )
     assert cargar_configuracion(ruta).subconjuntos["sur"] == ("ENVIGADO - ANTIOQUIA", "SABANETA - ANTIOQUIA")
+
+
+def test_referencias_incluidas():
+    referencia = cargar_configuracion(RUTA_INCLUIDA).referencia
+    assert referencia.geojson == Path("data/limite_barrio_vereda_cata.geojson")
+    assert referencia.alias_barrios == Path("data/alias_barrios.csv")
+    assert referencia.alias_comunas == Path("data/alias_comunas.csv")
+    assert referencia.municipio_con_poligonos == "MEDELLIN - ANTIOQUIA"
+
+
+def test_municipio_con_poligonos_fuera_del_area(tmp_path):
+    ruta = configuracion_modificada(
+        tmp_path, ('municipio_con_poligonos = "MEDELLIN - ANTIOQUIA"', 'municipio_con_poligonos = "RIONEGRO - ANTIOQUIA"')
+    )
+    errores, _ = errores_de(ruta)
+    assert errores == ["referencia.municipio_con_poligonos: 'RIONEGRO - ANTIOQUIA' no pertenece al área metropolitana"]
+
+
+def test_referencia_sin_una_ruta(tmp_path):
+    ruta = configuracion_modificada(tmp_path, ('alias_comunas = "data/alias_comunas.csv"\n', ""))
+    errores, _ = errores_de(ruta)
+    assert errores == ["referencia.alias_comunas: falta esta clave"]

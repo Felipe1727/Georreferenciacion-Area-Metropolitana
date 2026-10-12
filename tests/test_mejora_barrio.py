@@ -50,3 +50,18 @@ def test_tope_n_limita_llamadas(geocodificador):
     salida = rellenar_por_barrio(_df(filas), api_key="k", n=1)
     assert len(geocodificador.consultas) == 1
     assert salida["Latitud"].tolist() == [6.26, CENTROIDE_MEDELLIN[0]]
+
+
+def test_barrio_en_su_propia_columna(geocodificador):
+    # Archivos estandarizados desde normalizacion-direcciones: el barrio ya no esta en el complemento.
+    geocodificador.respuestas = {"CALASANZ, MEDELLIN": resultado(6.26, -75.6)}
+    df = _df([(*CENTROIDE_MEDELLIN, "CASA 2")]).assign(Barrio=["Calasanz"])
+    salida = rellenar_por_barrio(df, api_key="k")
+    assert geocodificador.consultas == ["CALASANZ, MEDELLIN"]
+    assert (salida.loc[0, "Latitud"], salida.loc[0, "Longitud"]) == (6.26, -75.6)
+
+
+def test_barrio_vacio_en_su_columna(geocodificador):
+    df = _df([(*CENTROIDE_MEDELLIN, "CASA 2 CALASANZ")]).assign(Barrio=[None])
+    rellenar_por_barrio(df, api_key="k")
+    assert geocodificador.consultas == ["CALASANZ, MEDELLIN"]

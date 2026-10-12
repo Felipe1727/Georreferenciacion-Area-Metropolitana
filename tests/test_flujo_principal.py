@@ -29,6 +29,7 @@ def test_opcion_1_genera_archivos_estandarizados(directorio_trabajo, ejecutar_ma
     principales = pd.read_excel(ARCHIVOS_ESTANDARIZADOS["principales"], index_col=0)
     assert list(principales.index) == [0, 1, 2, 3, 8, 9]
     assert principales.loc[0, "Direccion de residencia"] == "CL 10 #20-30"
+    assert (principales.loc[0, "Barrio"], principales.loc[0, "Zona"]) == ("Laureles", "URBANO")
     generados = sorted(p.name for p in ESTANDARIZADO.iterdir())
     assert generados == sorted(r.name for r in ARCHIVOS_ESTANDARIZADOS.values())
     assert all(nombre.isascii() for nombre in generados)

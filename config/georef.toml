@@ -46,15 +46,16 @@ tipos_via = ["CL", "CR", "AV", "CIR", "DG", "TV"]
 # Palabras que, además de los tipos de vía, forman parte de la dirección y no
 # del complemento.
 palabras_clave = ["BIS", "KM"]
-# Reemplazos que se aplican a cada dirección, EN ESTE ORDEN. El reemplazo se hace
-# por subcadena (también dentro de otras palabras), así que el orden cambia el
-# resultado: "NO" se aplica antes que "NORTE". Es el comportamiento heredado y se
-# corregirá en el cambio ubicacion-por-niveles.
+# Abreviaturas de la vía y la numeración. Se aplican solo a palabras completas
+# ("NORTE" -> "N", pero "NORTE" dentro de otra palabra no cambia) y solo a la parte
+# de la vía y la numeración: nunca al complemento, al barrio ni a la zona. El orden
+# de la lista no importa.
 equivalencias = [
     ["CALLE", "CL"],
     ["CARRERA", "CR"],
     ["CRR", "CR"],
     ["CRA", "CR"],
+    ["CRRA", "CR"],  # añadida en normalizacion-direcciones (aparece en los datos)
     ["CLL", "CL"],
     ["NÚMERO", "#"],
     ["NUMERO", "#"],
@@ -71,3 +72,12 @@ equivalencias = [
     ["OESTE", "O"],
     ["OCCIDENTE", "O"],
 ]
+
+# Datos de referencia geográfica (rutas relativas a la raíz del proyecto).
+# La estandarización reconoce el barrio y la comuna solo en los registros del
+# municipio con polígonos; los demás municipios no tienen polígonos de barrio.
+[referencia]
+geojson = "data/limite_barrio_vereda_cata.geojson"
+alias_barrios = "data/alias_barrios.csv"
+alias_comunas = "data/alias_comunas.csv"
+municipio_con_poligonos = "MEDELLIN - ANTIOQUIA"

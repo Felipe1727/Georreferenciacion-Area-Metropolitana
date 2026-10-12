@@ -2,7 +2,7 @@
 
 Este repositorio contiene el paquete de Python `georef/` (con `main.py` como punto de entrada heredado) que permite:
 
-- **Estandarizar direcciones**: Normaliza y formatea direcciones en mayúsculas, aplica abreviaturas y separa complementos.
+- **Estandarizar direcciones**: Normaliza y formatea direcciones en mayúsculas, aplica abreviaturas y separa la vía, el complemento, el barrio, la comuna y la zona (ver [Columnas de la estandarización](#columnas-de-la-estandarización)).
 - **Conversión de coordenadas**: Obtiene latitud y longitud de cada dirección del área metropolitana usando la API de OpenCage Geocode.
 - **Mejora de coordenadas**: Rellena coordenadas faltantes basándose en áreas o barrios.
 - **Generación de mapas interactivos**: Crea mapas HTML con marcadores individuales y clusters.
@@ -71,6 +71,7 @@ python -m pytest
 ├── data/                    # Datos de referencia versionados
 │   ├── limite_barrio_vereda_cata.geojson   # Polígonos oficiales de barrios y veredas de Medellín
 │   ├── alias_barrios.csv    # Variantes de nombres de barrio -> código oficial (revisada a mano)
+│   ├── alias_comunas.csv    # Variantes que designan una comuna completa (POBLADO, RODEO...)
 │   └── README.md            # Procedencia y significado de los campos
 ├── notebooks/               # Análisis exploratorios (versionados sin salidas)
 │   ├── exploracion_geojson.ipynb
@@ -82,7 +83,8 @@ python -m pytest
 │   ├── config.py            # Carga y validación de la configuración
 │   ├── etapas.py            # Una función por etapa (lee y escribe archivos)
 │   ├── archivos.py          # Rutas de trabajo y archivo de entrada
-│   ├── direcciones.py       # Separación por área y estandarización
+│   ├── direcciones.py       # Separación por área y normalización de direcciones
+│   ├── referencia.py        # Índice de barrios y comunas (GeoJSON y tablas de alias)
 │   ├── geocodificacion.py   # Llave y consultas a OpenCage
 │   └── mapas.py             # Mapas con folium
 ├── docs/                    # Documentación HTML generada con pdoc
@@ -173,6 +175,27 @@ python -m georef --help                        # lista los subcomandos
 - Solo los registros del **área metropolitana** se estandarizan y geocodifican. Los demás se exportan únicamente a `estandarizado/fuera_area_metropolitana.xlsx`.
 - Un **subconjunto** filtra `coordenadas_area_metropolitana.xlsx` por municipio y escribe `coordenadas/coordenadas_<nombre>.xlsx` (mismas columnas y mismo índice) y los mapas en `mapas/<nombre>/`. No llama a la API ni necesita la llave, así que no gasta cuota.
 
+### Columnas de la estandarización
+
+Los cuatro archivos de `estandarizado/` conservan las columnas del archivo de entrada y su número de fila como índice. La dirección se divide en estas columnas, seguidas:
+
+| Columna | Contenido | Ejemplo |
+|---|---|---|
+| `Direccion de residencia` | Vía y numeración con formato. Vacía si el texto no empieza por una vía (veredas, fincas…). | `CL 45S #12-15` |
+| `Complemento` | Datos de vivienda y lugares con nombre, con las palabras originales. Si no se reconoce barrio ni comuna, todo el texto queda aquí. | `APARTAMENTO 301` |
+| `Barrio` | Nombre oficial del barrio o la vereda (solo Medellín). | `Buenos Aires` |
+| `Codigo barrio` | `codigo` del polígono en el GeoJSON, como texto. Vacío si el nombre es ambiguo. | `0907` |
+| `Comuna` | Comuna o corregimiento del barrio, o el que nombra el estudiante cuando no da barrio. | `BUENOS AIRES` |
+| `Zona` | `URBANO` o `RURAL`, tomada de lo que sigue a `-*-`. | `URBANO` |
+
+Para conservar los ceros de `Codigo barrio` al leer los Excel con pandas, hay que indicar su tipo:
+
+```python
+pd.read_excel("estandarizado/principales_area_metropolitana.xlsx", index_col=0, dtype={"Codigo barrio": str})
+```
+
+El barrio se reconoce como el nombre más largo que coincide con el final del texto (nombres oficiales, `data/alias_barrios.csv`, comunas sin barrio homónimo y `data/alias_comunas.csv`). Los nombres repetidos se resuelven con la zona. Las palabras que no se reconocen nunca se pierden: quedan en `Complemento`.
+
 ## Configuración
 
 `config/georef.toml` contiene los valores del dominio, con comentarios que explican cada sección:
@@ -183,6 +206,7 @@ python -m georef --help                        # lista los subcomandos
 | `[subconjuntos.<nombre>]` | `municipios` de cada subconjunto; deben estar en el área metropolitana. |
 | `[columnas]` | Nombres de las columnas de ciudad y dirección del archivo de entrada. |
 | `[direcciones]` | `tipos_via`, `palabras_clave` y `equivalencias` de la estandarización. |
+| `[referencia]` | Rutas del GeoJSON y de las tablas de alias, y el municipio con polígonos de barrio (`MEDELLIN - ANTIOQUIA`). |
 
 - **Añadir un municipio:** agrégalo a `municipios` de `[area_metropolitana]`, escrito **exactamente** como aparece en la columna de ciudad del archivo de entrada (por ejemplo `"RIONEGRO - ANTIOQUIA"`). Un municipio mal escrito no da error, pero no coincide con ningún registro.
 - **Añadir un subconjunto:**
@@ -191,7 +215,7 @@ python -m georef --help                        # lista los subcomandos
   municipios = ["ENVIGADO - ANTIOQUIA", "SABANETA - ANTIOQUIA"]
   ```
   El nombre solo puede tener minúsculas sin tildes, dígitos y guiones bajos, porque forma parte de los nombres de archivo. Después: `python -m georef subconjunto --area sur`.
-- **Equivalencias:** se aplican **en el orden del archivo** y por subcadena (también dentro de otras palabras), así que cambiar el orden cambia el resultado. Es el comportamiento heredado; se corregirá en el cambio `ubicacion-por-niveles`.
+- **Equivalencias:** se aplican solo a **palabras completas** de la vía y la numeración (`CALLE` → `CL`, `NORTE` → `N`, también en `CALLE31A` o `SUR-15`), nunca dentro de otras palabras (`URBANO`, `SURAMERICA`) ni al complemento o al barrio. El orden de la lista no importa.
 - **Validación:** si hay errores (una clave desconocida, una lista vacía, un valor repetido, un subconjunto con un municipio fuera del área…), el programa termina antes de leer datos o llamar a la API y muestra todos los errores juntos, cada uno con su clave.
 
 ## Notebooks de análisis

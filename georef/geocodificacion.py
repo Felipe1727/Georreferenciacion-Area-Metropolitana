@@ -243,6 +243,9 @@ def rellenar_por_barrio(df: pd.DataFrame,
     Para registros con lat=6.25184 y lon=-75.56359 y Complemento conteniendo
     un barrio de BARRIOS_MEDELLIN, re-geocodifica usando Ciudad + Barrio.
     No hace más de n llamadas al API.
+
+    Desde normalizacion-direcciones el barrio reconocido está en la columna 'Barrio' y no
+    dentro de 'Complemento', así que se busca en ambas.
     """
     geocoder = OpenCageGeocode(api_key)
     llamadas = 0
@@ -265,8 +268,10 @@ def rellenar_por_barrio(df: pd.DataFrame,
         lat = row.get('Latitud', None)
         lon = row.get('Longitud', None)
         complemento = row.get('Complemento', '')
+        barrio = row.get('Barrio', None)
         if lat == CENTROIDE_MEDELLIN[0] and lon == CENTROIDE_MEDELLIN[1]:
-            comp_norm = normaliza(str(complemento))
+            texto = str(complemento) if pd.isna(barrio) else f"{complemento} {barrio}"
+            comp_norm = normaliza(texto)
             # ¿Algún barrio está contenido en el texto normalizado?
             barrio_encontrado = next((b for b in BARRIOS_MEDELLIN if b in comp_norm), None)
             if barrio_encontrado:

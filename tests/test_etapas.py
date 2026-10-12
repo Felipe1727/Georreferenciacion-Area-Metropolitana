@@ -113,3 +113,40 @@ def test_mapas_del_area_metropolitana(trabajo, configuracion):
     etapas.generar_mapas(configuracion)
     assert (Path("mapas") / "area_metropolitana" / "individual.html").exists()
     assert (Path("mapas") / "area_metropolitana" / "filtrados" / "clusters_filtrados.html").exists()
+
+
+def test_archivo_de_referencia_inexistente(trabajo):
+    ruta = escribir_configuracion(
+        trabajo / "otra.toml", ('geojson = "data/limite_barrio_vereda_cata.geojson"', 'geojson = "no_existe.geojson"')
+    )
+    with pytest.raises(SystemExit) as salida:
+        etapas.estandarizar(cargar_configuracion(ruta))
+    assert salida.value.code not in (None, 0)
+    assert "no_existe.geojson" in salida.value.code
+    assert list(Path("estandarizado").iterdir()) == []
+
+
+def test_normalizacion_de_un_registro_de_fuera(trabajo, configuracion):
+    etapas.estandarizar(configuracion)
+    monteria = leer(archivos.RUTA_FUERA_AM).loc[7]
+    assert monteria["Direccion de residencia"] == "CR 5 #10-20"
+    assert monteria["Complemento"] == "CENTRO"
+    assert monteria[["Barrio", "Codigo barrio", "Comuna"]].isna().all()
+
+
+def test_columnas_normalizadas_en_los_cuatro_archivos(trabajo, configuracion):
+    etapas.estandarizar(configuracion)
+    for ruta in (archivos.RUTA_TOTAL_AM, archivos.RUTA_PRINCIPALES_AM, archivos.RUTA_ESPECIALES_AM, archivos.RUTA_FUERA_AM):
+        columnas = list(leer(ruta).columns)
+        posicion = columnas.index("Direccion de residencia")
+        assert columnas[posicion:posicion + 6] == [
+            "Direccion de residencia", "Complemento", "Barrio", "Codigo barrio", "Comuna", "Zona"
+        ]
+
+
+def test_codigo_barrio_se_lee_como_texto(trabajo, configuracion):
+    etapas.estandarizar(configuracion)
+    # Buenos Aires (fila 1) tiene el codigo 0907: con dtype=str se conserva el cero.
+    principales = pd.read_excel(archivos.RUTA_PRINCIPALES_AM, index_col=0, dtype={"Codigo barrio": str})
+    assert principales.loc[1, "Codigo barrio"] == "0907"
+    assert pd.read_excel(archivos.RUTA_PRINCIPALES_AM, index_col=0).loc[1, "Codigo barrio"] == 907

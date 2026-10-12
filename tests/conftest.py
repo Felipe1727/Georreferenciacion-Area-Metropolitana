@@ -3,6 +3,7 @@
 Ningun valor procede de `original/`: las direcciones son inventadas e imitan
 las formas reales (via + numeros + complemento + `BARRIO -*- ZONA`).
 """
+import dataclasses
 from pathlib import Path
 
 import pandas as pd
@@ -11,7 +12,8 @@ import pytest
 from georef import archivos, cli, geocodificacion
 from georef.config import cargar_configuracion
 
-RUTA_CONFIGURACION = Path(__file__).resolve().parent.parent / "config" / "georef.toml"
+RAIZ_REPO = Path(__file__).resolve().parent.parent
+RUTA_CONFIGURACION = RAIZ_REPO / "config" / "georef.toml"
 
 # Direccion de residencia -> Ciudad Residencia
 DIRECCIONES = {
@@ -91,14 +93,27 @@ def escribir_configuracion(ruta, *reemplazos):
     for viejo, nuevo in reemplazos:
         assert viejo in texto, viejo
         texto = texto.replace(viejo, nuevo, 1)
+    # Los datos de referencia se leen del repositorio aunque el test trabaje en un directorio temporal.
+    texto = texto.replace('= "data/', f'= "{RAIZ_REPO.as_posix()}/data/')
     Path(ruta).write_text(texto, encoding="utf-8")
     return Path(ruta)
 
 
 @pytest.fixture
 def configuracion():
-    """Configuracion incluida en el repositorio (config/georef.toml)."""
-    return cargar_configuracion(RUTA_CONFIGURACION)
+    """Configuracion incluida (config/georef.toml), con las rutas de referencia absolutas.
+
+    Asi las etapas encuentran `data/` aunque el test trabaje en un directorio temporal.
+    """
+    configuracion = cargar_configuracion(RUTA_CONFIGURACION)
+    referencia = configuracion.referencia
+    absolutas = dataclasses.replace(
+        referencia,
+        geojson=RAIZ_REPO / referencia.geojson,
+        alias_barrios=RAIZ_REPO / referencia.alias_barrios,
+        alias_comunas=RAIZ_REPO / referencia.alias_comunas,
+    )
+    return dataclasses.replace(configuracion, referencia=absolutas)
 
 
 @pytest.fixture

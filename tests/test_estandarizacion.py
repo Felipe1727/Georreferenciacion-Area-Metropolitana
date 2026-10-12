@@ -1,13 +1,15 @@
 """Caracterizacion de la estandarizacion y clasificacion por area.
 
-Los valores esperados se obtuvieron ejecutando el codigo actual. Los tests con
-`defecto_conocido` en el nombre congelan defectos a proposito: el cambio que
-los corrija (`ubicacion-por-niveles`) debe actualizarlos explicitamente.
+Los valores esperados se obtuvieron ejecutando el codigo. Hasta `normalizacion-direcciones`
+habia tests `*_defecto_conocido` que congelaban el reemplazo por subcadena (`URBANO` ->
+`URBA#`); ese cambio los convirtio en tests del comportamiento corregido.
 """
 import pandas as pd
 import pytest
 
+from conftest import RUTA_CONFIGURACION
 from georef import direcciones
+from georef.referencia import IndiceLugares
 
 DIRECCION = "Direccion de residencia"
 CIUDAD = "Ciudad Residencia"
@@ -24,13 +26,13 @@ def equivalencias(vocabulario):
 
 
 def _area_metropolitana_estandarizada(df, configuracion):
-    """Reproduce la opcion 1 del menu hasta la estandarizacion."""
-    vocabulario = configuracion.direcciones
-    am, _ = direcciones.separar_por_area(df, configuracion.area_metropolitana, CIUDAD)
-    am = pd.DataFrame(am)
-    am.loc[:, DIRECCION] = direcciones.reemplazar_equivalentes(am.loc[:, DIRECCION], vocabulario.equivalencias)
-    principales, especiales = direcciones.filtrar_vias_principales(am.copy(), DIRECCION, vocabulario.tipos_via)
-    return direcciones.estandarizar(principales, vocabulario, DIRECCION), especiales
+    """Reproduce la estandarizacion: normaliza, separa por area y clasifica."""
+    raiz = RUTA_CONFIGURACION.parent.parent
+    referencia = configuracion.referencia
+    indice = IndiceLugares(raiz / referencia.geojson, raiz / referencia.alias_barrios, raiz / referencia.alias_comunas)
+    normalizado, principal = direcciones.normalizar_direcciones(df, configuracion, indice)
+    am, _ = direcciones.separar_por_area(normalizado, configuracion.area_metropolitana, CIUDAD)
+    return am[principal[am.index]], am[~principal[am.index]]
 
 
 def test_filtrar_area_metropolitana_separa_por_municipio(df_original, configuracion):
@@ -60,15 +62,15 @@ def test_reemplazar_equivalentes_abrevia(entrada, esperado, equivalencias):
 @pytest.mark.parametrize(
     "entrada, esperado",
     [
-        # Correcto seria conservar las palabras: el reemplazo es por subcadena.
-        ("LAURELES -*- URBANO", "LAURELES -*- URBA#"),
-        ("BUENOS AIRES", "BUE#S AIRES"),
-        ("LOS PINOS", "LOS PI#S"),
-        ("CR 50 NORTE 30 20", "CR 50 #RTE 30 20"),
-        ("SURAMERICA", "SAMERICA"),
+        # Antes (reemplazo por subcadena): URBA#, BUE#S AIRES, LOS PI#S, CR 50 #RTE 30 20, SAMERICA.
+        ("LAURELES -*- URBANO", "LAURELES -*- URBANO"),
+        ("BUENOS AIRES", "BUENOS AIRES"),
+        ("LOS PINOS", "LOS PINOS"),
+        ("CR 50 NORTE 30 20", "CR 50 N 30 20"),
+        ("SURAMERICA", "SURAMERICA"),
     ],
 )
-def test_reemplazo_por_subcadena_defecto_conocido(entrada, esperado, equivalencias):
+def test_reemplazo_por_palabra_completa(entrada, esperado, equivalencias):
     assert direcciones.reemplazar_equivalentes(pd.Series([entrada]), equivalencias).tolist() == [esperado]
 
 
@@ -80,22 +82,12 @@ def test_identificar_vias_principales(df_original, vocabulario):
     assert vias.tolist()[6:] == ["CL", "CR", "TV", "DG"]
 
 
-def test_filtrar_vias_principales_separa_especiales(df_original, configuracion):
-    vocabulario = configuracion.direcciones
-    am, _ = direcciones.separar_por_area(df_original, configuracion.area_metropolitana, CIUDAD)
-    am = pd.DataFrame(am)
-    am.loc[:, DIRECCION] = direcciones.reemplazar_equivalentes(am.loc[:, DIRECCION], vocabulario.equivalencias)
-    principales, especiales = direcciones.filtrar_vias_principales(am.copy(), DIRECCION, vocabulario.tipos_via)
-    assert list(principales.index) == [0, 1, 2, 3, 8, 9]
-    assert list(especiales.index) == [4, 5]
-
-
 @pytest.mark.parametrize(
     "entrada, esperado",
     [
-        ("CL 10 20 30 LAURELES -*- URBA#", ["CL 10 20 30", "LAURELES -*- URBA#"]),
-        ("CR 43 A 1 50 UNIDAD LOS PI#S -*- URBA#", ["CR 43 A 1 50", "UNIDAD LOS PI#S -*- URBA#"]),
-        ("TV 32 B 75 20 CASA 2 CALASANZ -*- URBA#", ["TV 32 B 75 20", "CASA 2 CALASANZ -*- URBA#"]),
+        ("CL 10 20 30 LAURELES", ["CL 10 20 30", "LAURELES"]),
+        ("CR 43 A 1 50 UNIDAD LOS PINOS", ["CR 43 A 1 50", "UNIDAD LOS PINOS"]),
+        ("TV 32 B 75 20 CASA 2", ["TV 32 B 75 20", "CASA 2"]),
         ("CL 10 20 30", ["CL 10 20 30", ""]),
     ],
 )
@@ -103,11 +95,11 @@ def test_dividir_complemento(entrada, esperado, vocabulario):
     assert direcciones.dividir_complemento(entrada, vocabulario.palabras_clave_completas) == esperado
 
 
-def test_dividir_complemento_corta_direccion_con_norte_defecto_conocido(vocabulario):
-    # Tras convertir NORTE en #RTE, la direccion pierde sus numeros.
-    assert direcciones.dividir_complemento("CR 50 #RTE 30 20 -*- URBA#", vocabulario.palabras_clave_completas) == [
-        "CR 50 #",
-        "RTE 30 20 -*- URBA#",
+def test_dividir_complemento_con_norte_abreviado(vocabulario):
+    # Antes, NORTE se convertia en #RTE y la direccion perdia sus numeros ("CR 50 #" | "RTE 30 20").
+    assert direcciones.dividir_complemento("CR 50 N 30 20", vocabulario.palabras_clave_completas) == [
+        "CR 50 N 30 20",
+        "",
     ]
 
 
@@ -127,28 +119,34 @@ def test_format_dir(entrada, esperado, vocabulario):
 
 
 def test_estandarizacion_completa(df_original, configuracion):
-    estandarizado, especiales = _area_metropolitana_estandarizada(df_original, configuracion)
-    assert list(estandarizado.columns) == [
+    principales, especiales = _area_metropolitana_estandarizada(df_original, configuracion)
+    assert list(principales.columns) == [
         "CODIGO",
         "Programa Admision",
         "Ciudad Residencia",
         "Direccion de residencia",
         "Complemento",
+        "Barrio",
+        "Codigo barrio",
+        "Comuna",
+        "Zona",
     ]
-    assert estandarizado["Direccion de residencia"].tolist() == [
+    assert list(principales.index) == [0, 1, 2, 3, 8, 9]
+    assert principales["Direccion de residencia"].tolist() == [
         "CL 10 #20-30",
         "CL 45S #12-15",
         "CR 43A #1-50",
-        "CR 50",
+        "CR 50N #30-20",  # antes "CR 50": NORTE se convertia en #RTE
         "TV 32B #75-20",
         "DG 50A #35-12",
     ]
-    assert estandarizado["Complemento"].tolist() == [
-        "LAURELES -*- URBA#",
-        "APARTAMENTO 301 BUE#S AIRES -*- URBA#",
-        "UNIDAD LOS PI#S -*- URBA#",
-        "RTE 30 20 -*- URBA#",
-        "CASA 2 CALASANZ -*- URBA#",
-        "SAMERICA -*- URBA#",
+    # Antes: "LAURELES -*- URBA#", "APARTAMENTO 301 BUE#S AIRES -*- URBA#", "UNIDAD LOS PI#S -*- URBA#",
+    # "RTE 30 20 -*- URBA#", "CASA 2 CALASANZ -*- URBA#" y "SAMERICA -*- URBA#".
+    assert principales["Complemento"].fillna("").tolist() == [
+        "", "APARTAMENTO 301", "UNIDAD LOS PINOS", "", "CASA 2", "SURAMERICA",
     ]
+    assert principales["Barrio"].fillna("").tolist() == ["Laureles", "Buenos Aires", "", "", "Calasanz", ""]
+    assert principales["Codigo barrio"].fillna("").tolist() == ["1108", "0907", "", "", "1202", ""]
+    assert principales["Zona"].tolist() == ["URBANO"] * 6
     assert list(especiales.index) == [4, 5]
+    assert especiales.loc[4, "Barrio"] == "El Plan" and especiales.loc[5, "Complemento"] == "FINCA LA ESPERANZA"

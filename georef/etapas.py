@@ -9,33 +9,32 @@ import pandas as pd
 
 from georef import archivos, direcciones, geocodificacion, mapas
 from georef.config import AREA_METROPOLITANA, Configuracion
+from georef.referencia import ErrorReferencia, IndiceLugares
 
 MENSAJE_SIN_COORDENADAS = "Error: Necesitas primero procesar las coordenadas."
 
 
 def estandarizar(configuracion: Configuracion):
-    """Lee el archivo de `original/`, lo separa por área y escribe los cuatro archivos de `estandarizado/`."""
+    """
+    Lee el archivo de `original/`, normaliza todas sus direcciones, las separa por área y escribe
+    los cuatro archivos de `estandarizado/`. El barrio y la comuna solo se reconocen en el
+    municipio con polígonos.
+    """
+    try:
+        indice = IndiceLugares.desde_configuracion(configuracion.referencia)
+    except ErrorReferencia as error:
+        sys.exit(f"Error: {error}")
     df = archivos.leer_archivo_original()
     archivos.verificar_columnas(df, configuracion.columnas)
-    columna = configuracion.columnas.direccion
-    vocabulario = configuracion.direcciones
 
+    normalizado, principal = direcciones.normalizar_direcciones(df, configuracion, indice)
     # am -> área metropolitana
     # nam -> no área metropolitana
-    a, b = direcciones.separar_por_area(df, configuracion.area_metropolitana, configuracion.columnas.ciudad)
-    am = pd.DataFrame(a)
-    nam = pd.DataFrame(b)
-    # Acondicionamiento básico de ambos DF
-    am.loc[:, columna] = direcciones.reemplazar_equivalentes(am.loc[:, columna], vocabulario.equivalencias)
-    nam.loc[:, columna] = direcciones.reemplazar_equivalentes(nam.loc[:, columna], vocabulario.equivalencias)
-
-    # Filtro de los tipos de vía principales en el DF am
-    am_vias_principales, am_vias_especiales = direcciones.filtrar_vias_principales(
-        am.copy(), columna, vocabulario.tipos_via
-    )
-
-    # Estandarización direcciones
-    am_vias_principales = direcciones.estandarizar(am_vias_principales, vocabulario, columna)
+    am, nam = direcciones.separar_por_area(normalizado, configuracion.area_metropolitana,
+                                           configuracion.columnas.ciudad)
+    es_principal = principal[am.index]
+    am_vias_principales = am[es_principal]
+    am_vias_especiales = am[~es_principal]
 
     am.to_excel(archivos.RUTA_TOTAL_AM)
     am_vias_principales.to_excel(archivos.RUTA_PRINCIPALES_AM)

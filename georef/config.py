@@ -57,6 +57,16 @@ class VocabularioDirecciones:
 
 
 @dataclass(frozen=True)
+class Referencia:
+    """Datos de referencia geográfica: polígonos de barrios, tablas de alias y su municipio."""
+
+    geojson: Path
+    alias_barrios: Path
+    alias_comunas: Path
+    municipio_con_poligonos: str
+
+
+@dataclass(frozen=True)
 class Configuracion:
     """Configuración validada del proyecto."""
 
@@ -64,6 +74,7 @@ class Configuracion:
     subconjuntos: Mapping[str, tuple[str, ...]]
     columnas: Columnas
     direcciones: VocabularioDirecciones
+    referencia: Referencia
     ruta: Path
 
 
@@ -94,7 +105,8 @@ def cargar_configuracion(ruta=RUTA_POR_DEFECTO) -> Configuracion:
 
 def _validar(datos, ruta, errores):
     """Comprueba la estructura de `datos` y devuelve la Configuracion; añade a `errores` cada problema."""
-    _claves_desconocidas(datos, "", {"area_metropolitana", "subconjuntos", "columnas", "direcciones"}, errores)
+    _claves_desconocidas(datos, "", {"area_metropolitana", "subconjuntos", "columnas", "direcciones", "referencia"},
+                         errores)
 
     area = _tabla(datos, "area_metropolitana", {"municipios"}, errores)
     municipios_am = _lista_textos(area, "municipios", "area_metropolitana", errores)
@@ -126,11 +138,25 @@ def _validar(datos, ruta, errores):
         errores.append(f"direcciones: '{palabra}' está a la vez en tipos_via y en palabras_clave")
     equivalencias = _equivalencias(tabla_direcciones, errores)
 
+    claves_referencia = {"geojson", "alias_barrios", "alias_comunas", "municipio_con_poligonos"}
+    tabla_referencia = _tabla(datos, "referencia", claves_referencia, errores)
+    referencia = Referencia(
+        geojson=Path(_texto(tabla_referencia, "geojson", "referencia", errores)),
+        alias_barrios=Path(_texto(tabla_referencia, "alias_barrios", "referencia", errores)),
+        alias_comunas=Path(_texto(tabla_referencia, "alias_comunas", "referencia", errores)),
+        municipio_con_poligonos=_texto(tabla_referencia, "municipio_con_poligonos", "referencia", errores),
+    )
+    if municipios_am and referencia.municipio_con_poligonos and \
+            referencia.municipio_con_poligonos not in municipios_am:
+        errores.append(f"referencia.municipio_con_poligonos: '{referencia.municipio_con_poligonos}' "
+                       "no pertenece al área metropolitana")
+
     return Configuracion(
         area_metropolitana=municipios_am,
         subconjuntos=MappingProxyType(subconjuntos),
         columnas=columnas,
         direcciones=VocabularioDirecciones(tipos_via, palabras_clave, equivalencias),
+        referencia=referencia,
         ruta=ruta,
     )
 

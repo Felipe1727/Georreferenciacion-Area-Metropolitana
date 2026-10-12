@@ -64,3 +64,25 @@ Después de editar la tabla hay que comprobar sus invariantes:
 ```bash
 python -m pytest tests/test_alias_barrios.py
 ```
+
+## `alias_comunas.csv`
+
+Formas escritas que designan una comuna o corregimiento **completo** sin ser su nombre oficial. Se usan cuando un
+estudiante solo nombra la comuna: la estandarización rellena la columna `Comuna` y deja `Barrio` vacío. Está en UTF-8 y
+tiene estas columnas:
+
+| Columna | Contenido |
+|---|---|
+| `alias` | Variante ya normalizada (`POBLADO`). No puede ser un nombre oficial de barrio o de comuna, ni un alias de `alias_barrios.csv`. |
+| `comuna` | `nombre_comuna` del GeoJSON, tal como aparece en él (`EL POBLADO`, `BELEN`). |
+| `nota` | Motivo de la variante. |
+
+Las comunas o corregimientos que no tienen ningún barrio con su mismo nombre (por ejemplo, `SAN ANTONIO DE PRADO`) se
+reconocen sin necesidad de esta tabla. El reconocimiento elige siempre el nombre más largo que coincide con el final del
+texto, así que `EL POBLADO` sigue siendo el barrio El Poblado y `EL RODEO` el barrio de Guayabal.
+
+Después de editar la tabla hay que comprobar sus invariantes:
+
+```bash
+python -m pytest tests/test_alias_comunas.py
+```
