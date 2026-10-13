@@ -3,8 +3,7 @@
 Este repositorio contiene el paquete de Python `georef/` (con `main.py` como punto de entrada heredado) que permite:
 
 - **Estandarizar direcciones**: Normaliza y formatea direcciones en mayúsculas, aplica abreviaturas y separa la vía, el complemento, el barrio, la comuna y la zona (ver [Columnas de la estandarización](#columnas-de-la-estandarización)).
-- **Conversión de coordenadas**: Obtiene latitud y longitud de cada dirección del área metropolitana usando la API de OpenCage Geocode.
-- **Mejora de coordenadas**: Rellena coordenadas faltantes basándose en áreas o barrios.
+- **Ubicación por niveles**: Asigna a cada estudiante del área metropolitana el punto más preciso disponible (dirección validada con OpenCage, barrio, comuna o municipio) y deja constancia de esa precisión (ver [Columnas del archivo de coordenadas](#columnas-del-archivo-de-coordenadas)).
 - **Generación de mapas interactivos**: Crea mapas HTML con marcadores individuales y clusters.
 - **Subconjuntos**: Extrae las coordenadas y los mapas de una parte del área metropolitana (por ejemplo, Medellín) sin volver a usar la API.
 
@@ -29,7 +28,7 @@ conda activate medellin-analysis312
 ### Usando pip
 
 ```bash
-pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-dotenv==1.2.4 geopandas==1.1.3 jupyterlab==4.5.6 "pytest>=8" pdoc==16.0.0
+pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-dotenv==1.2.4 geopandas==1.1.3 shapely==2.1.2 pyproj==3.7.2 jupyterlab==4.5.6 "pytest>=8" pdoc==16.0.0
 ```
 
 `tkinter` no se instala con pip: viene con Python (en Linux puede requerir el paquete del sistema, por ejemplo `python3-tk`).
@@ -41,6 +40,7 @@ pip install pandas==3.0.6 folium==0.20.0 opencage==3.3.0 openpyxl==3.1.5 python-
 - `python-dotenv`: lectura de la llave desde el archivo `.env`.
 - `tkinter`: selección de archivos vía GUI.
 - `geopandas`: análisis de los polígonos de barrios (notebooks).
+- `shapely` y `pyproj`: polígonos de barrios y comunas, distancias y cambio de sistema de coordenadas en la ubicación por niveles.
 - `jupyterlab`: entorno para abrir los notebooks.
 - `pytest`: pruebas automáticas (solo desarrollo).
 - `pdoc`: generación de la documentación de `docs/` (solo desarrollo).
@@ -60,13 +60,15 @@ python -m pytest
 │   ├── principales_area_metropolitana.xlsx
 │   ├── especiales_area_metropolitana.xlsx
 │   └── fuera_area_metropolitana.xlsx
-├── coordenadas/             # Salida con coordenadas obtenidas y mejoradas
+├── coordenadas/             # Salida de la ubicación por niveles
 │   ├── coordenadas_area_metropolitana.xlsx
-│   └── coordenadas_<subconjunto>.xlsx      # p. ej. coordenadas_medellin.xlsx
+│   ├── coordenadas_<subconjunto>.xlsx      # p. ej. coordenadas_medellin.xlsx
+│   ├── cache_consultas.csv  # Respuestas de OpenCage (evita repetir peticiones)
+│   └── registro_consultas.csv              # Diagnóstico de cada petición
 ├── mapas/                   # Mapas HTML generados, una carpeta por área
 │   ├── area_metropolitana/
 │   │   ├── individual.html, clusters.html
-│   │   └── filtrados/       # Sin los puntos en el centroide de Medellín
+│   │   └── filtrados/       # Sin los registros ubicados solo a nivel de municipio
 │   └── <subconjunto>/       # Misma estructura
 ├── data/                    # Datos de referencia versionados
 │   ├── limite_barrio_vereda_cata.geojson   # Polígonos oficiales de barrios y veredas de Medellín
@@ -77,7 +79,7 @@ python -m pytest
 │   ├── exploracion_geojson.ipynb
 │   └── hallazgos_geojson.md # Cifras agregadas y recomendaciones
 ├── config/
-│   └── georef.toml          # Configuración: municipios, subconjuntos, columnas y vocabulario
+│   └── georef.toml          # Configuración: municipios, subconjuntos, columnas, vocabulario y ubicación
 ├── georef/                  # Código del programa
 │   ├── cli.py               # Subcomandos y menú interactivo
 │   ├── config.py            # Carga y validación de la configuración
@@ -85,7 +87,9 @@ python -m pytest
 │   ├── archivos.py          # Rutas de trabajo y archivo de entrada
 │   ├── direcciones.py       # Separación por área y normalización de direcciones
 │   ├── referencia.py        # Índice de barrios y comunas (GeoJSON y tablas de alias)
-│   ├── geocodificacion.py   # Llave y consultas a OpenCage
+│   ├── geocodificacion.py   # Llave, texto de las consultas y sesión de consultas a OpenCage
+│   ├── geografia.py         # Polígonos de barrios, comunas y municipio (shapely y pyproj)
+│   ├── ubicacion.py         # Cascada de niveles DIRECCION, BARRIO, COMUNA y MUNICIPIO
 │   └── mapas.py             # Mapas con folium
 ├── docs/                    # Documentación HTML generada con pdoc
 ├── tests/                   # Pruebas automáticas (pytest)
@@ -101,14 +105,15 @@ Las carpetas de datos (`original/`, `estandarizado/`, `coordenadas/`, `mapas/`) 
   ```bash
   mv coordenadas/coordenadas.xlsx coordenadas/coordenadas_area_metropolitana.xlsx
   ```
-  Mientras solo exista el nombre antiguo, la conversión, la mejora, los mapas y los subconjuntos se detienen con un aviso, sin llamar a la API. Así no se vuelve a geocodificar todo por error.
+  Mientras solo exista el nombre antiguo, la ubicación, los mapas y los subconjuntos se detienen con un aviso, sin llamar a la API. Así no se vuelve a geocodificar todo por error.
 - **Mapas.** Ahora se generan en `mapas/area_metropolitana/`. Vuelve a generarlos con `python -m georef mapas`; los HTML antiguos de `mapas/` y `mapas/filtrados/` se pueden borrar.
+- **Ubicación por niveles.** La conversión de coordenadas (`geocodificar`) pasó a ser `ubicar`, y la mejora de coordenadas (`mejorar`, antigua opción 3 del menú) desapareció: la ubicación ya usa el barrio declarado. El archivo de coordenadas cambia de columnas e incluye los registros especiales. La primera vez que ejecutes `ubicar`, el archivo anterior se conserva como `coordenadas/coordenadas_area_metropolitana_anterior.xlsx`. Antes, añade los puntos de los municipios (ver [Primera ubicación](#primera-ubicación)).
 - **Estandarización.** Los archivos de `estandarizado/` se llamaban antes `*_área_metropolitana.xlsx` (con tilde) y ya no se leen. Renómbralos a `*_area_metropolitana.xlsx` o vuelve a ejecutar la estandarización, que no consume la API.
 
 
 ## Llave de la API de OpenCage
 
-La conversión y la mejora de coordenadas leen la llave de la variable `OPENCAGE_API_KEY`. El programa la busca primero en las variables de entorno y, si no la encuentra, en el archivo `.env` de la carpeta desde la que se ejecuta (la raíz del proyecto). Nunca la guarda en archivos ni la pide por consola; si falta, termina con un mensaje que explica cómo definirla. La estandarización, la generación de mapas y los subconjuntos funcionan sin ella.
+La ubicación (`ubicar`), `consultar-municipios` y `comparar-consultas` leen la llave de la variable `OPENCAGE_API_KEY`. El programa la busca primero en las variables de entorno y, si no la encuentra, en el archivo `.env` de la carpeta desde la que se ejecuta (la raíz del proyecto). Nunca la guarda en archivos ni la pide por consola; si falta, termina con un mensaje que explica cómo definirla. La estandarización, `ubicar --sin-consultas`, la generación de mapas y los subconjuntos funcionan sin ella.
 
 ### Opción recomendada: archivo `.env`
 
@@ -145,12 +150,13 @@ Ejecuta el programa desde la raíz del repositorio con el entorno activado. Al a
 python -m georef        # o, como hasta ahora: python main.py
 ```
 
-Verás un menú con 5 opciones:
+Verás un menú con 4 opciones:
 1. Estandarización de direcciones. Si `original/` está vacía, se abre un diálogo para elegir el archivo Excel.
-2. Conversión de coordenadas.
-3. Mejora de coordenadas (requiere haber corrido la conversión primero).
-4. Generación de mapas.
-5. Extracción de un subconjunto: lista los subconjuntos configurados y pide elegir uno.
+2. Ubicación por niveles (coordenadas).
+3. Generación de mapas.
+4. Extracción de un subconjunto: lista los subconjuntos configurados y pide elegir uno.
+
+Los diagnósticos (`consultar-municipios` y `comparar-consultas`) solo están disponibles como subcomandos.
 
 ### Subcomandos
 
@@ -158,22 +164,63 @@ Cada subcomando ejecuta una sola etapa, sin menú ni preguntas (útil para scrip
 
 ```bash
 python -m georef estandarizar                  # original/ -> estandarizado/
-python -m georef geocodificar                  # -> coordenadas/coordenadas_area_metropolitana.xlsx
-python -m georef mejorar                       # mejora por barrio sobre ese mismo archivo
+python -m georef ubicar                        # -> coordenadas/coordenadas_area_metropolitana.xlsx
+python -m georef ubicar --sin-consultas        # igual, sin peticiones ni llave: solo usa la caché
 python -m georef mapas                         # -> mapas/area_metropolitana/
 python -m georef subconjunto --area medellin   # -> coordenadas/coordenadas_medellin.xlsx y mapas/medellin/
+python -m georef consultar-municipios          # puntos de los municipios -> config/georef.toml
+python -m georef comparar-consultas --muestra 50   # compara los dos formatos de consulta
 python -m georef --help                        # lista los subcomandos
 ```
 
-- `python main.py <subcomando>` funciona igual, y `python main.py c` sigue siendo la conversión de coordenadas sin menú.
+- `python main.py <subcomando>` funciona igual, y `python main.py c` ejecuta la ubicación (`ubicar`) sin menú.
 - `--config <ruta>` (antes del subcomando) usa otro archivo de configuración: `python -m georef --config otra.toml estandarizar`.
 - `estandarizar` no abre el diálogo: si `original/` está vacía, termina con un mensaje.
 - `original/` debe contener un único archivo. Los archivos ocultos y los de bloqueo que crean LibreOffice o Excel mientras el archivo está abierto se ignoran.
 
 ### Áreas y salidas
 
-- Solo los registros del **área metropolitana** se estandarizan y geocodifican. Los demás se exportan únicamente a `estandarizado/fuera_area_metropolitana.xlsx`.
+- Solo los registros del **área metropolitana** (de vía principal y especiales) se ubican. Los demás se exportan únicamente a `estandarizado/fuera_area_metropolitana.xlsx`.
 - Un **subconjunto** filtra `coordenadas_area_metropolitana.xlsx` por municipio y escribe `coordenadas/coordenadas_<nombre>.xlsx` (mismas columnas y mismo índice) y los mapas en `mapas/<nombre>/`. No llama a la API ni necesita la llave, así que no gasta cuota.
+
+### Columnas del archivo de coordenadas
+
+`ubicar` escribe de nuevo, en cada ejecución, `coordenadas/coordenadas_area_metropolitana.xlsx` con todos los registros del área metropolitana (de vía principal y especiales), sus columnas de `estandarizado/` y, tras `Zona`, estas columnas:
+
+| Columna | Contenido |
+|---|---|
+| `Latitud`, `Longitud` | Punto asignado (WGS84). |
+| `Nivel ubicacion` | Precisión del punto: `DIRECCION`, `BARRIO`, `COMUNA` o `MUNICIPIO` (ver abajo). |
+| `Resultado consulta` | Qué pasó con la consulta a OpenCage: `ACEPTADA`, `ACEPTADA_LUGAR` (segunda consulta con el lugar del complemento), `SIN_RESULTADO`, `PRECISION_INSUFICIENTE`, `FUERA_DEL_MUNICIPIO`, `LEJOS_DEL_LUGAR_DECLARADO`, `PENDIENTE` (no se pudo consultar; se reintenta en la siguiente ejecución) o `SIN_CONSULTA` (otros municipios y registros especiales). |
+| `Barrio ubicacion`, `Codigo barrio ubicacion`, `Comuna ubicacion` | Polígono oficial de Medellín donde cae el punto asignado (solo el barrio o la comuna que correspondan a su nivel). |
+
+Cada registro recibe el primer nivel disponible:
+1. **`DIRECCION`**: solo vías principales de Medellín. Se acepta el punto de OpenCage si su tipo no es de ciudad o superior, su `confidence` llega a `confianza_minima`, cae en Medellín y está a `tolerancia_metros` (250 m) o menos del barrio declarado (o, si no hay barrio, de la comuna declarada). Si está más lejos, **prevalece lo que declaró el estudiante**.
+2. **`BARRIO`**: punto representativo del polígono del barrio declarado (siempre cae dentro del polígono, a diferencia del centroide).
+3. **`COMUNA`**: punto representativo de la comuna declarada.
+4. **`MUNICIPIO`**: punto del municipio en `[puntos_municipios]`. Es el único nivel de los otros 9 municipios, que nunca se consultan a OpenCage.
+
+Los metadatos de OpenCage (`confidence`, tipo, texto devuelto) no van al Excel: quedan en la caché. Al terminar, `ubicar` muestra un resumen con cifras agregadas: registros por nivel y por resultado, peticiones hechas, consultas resueltas desde la caché y pendientes.
+
+### Primera ubicación
+
+Con el free trial de OpenCage (2.500 peticiones al día), el orden recomendado es:
+
+1. `python -m georef consultar-municipios`: consulta una vez los 10 municipios (10 peticiones) y añade sus puntos a `config/georef.toml`. Revisa los puntos que muestra: si alguno es de un municipio homónimo de otro departamento, corrígelo a mano.
+2. `python -m georef comparar-consultas --muestra 50`: toma siempre la misma muestra de hasta 50 direcciones distintas de Medellín con barrio declarado y consulta cada una en los dos formatos (hasta 100 peticiones; repetir el comando no gasta cuota). Para cada formato muestra solo cifras agregadas: consultas con resultado, tipos de resultado, `confidence` mediana, porcentaje de puntos dentro del barrio declarado y a `tolerancia_metros` o menos, distancia mediana y cuántos se aceptarían con la configuración actual. Con eso, elige `formato_consulta` y, si hace falta, `confianza_minima` en `[ubicacion]`.
+3. `python -m georef ubicar`: unas 620 peticiones, con al menos 1 segundo entre una y otra. Mientras trabaja muestra una línea de avance (`Registro 312 de 963 · peticiones a OpenCage: 140 · …`) y al final un resumen por nivel. Si se para (cuota, errores o límite), vuelve a ejecutarlo: continúa donde se quedó.
+4. `python -m georef mapas`.
+
+### Caché y registro de las consultas a OpenCage
+
+Las operaciones que consultan a OpenCage escriben dos archivos en `coordenadas/` (ignorada por git, porque contienen direcciones):
+
+- **`cache_consultas.csv`**: una línea por consulta respondida (con o sin resultado): el texto de la consulta, el punto, la `confidence`, el tipo y el texto que devolvió OpenCage. Una consulta que ya está en la caché **nunca se repite**, así que volver a ejecutar no gasta cuota en lo ya consultado, y dos estudiantes con la misma dirección comparten una sola petición. Las peticiones que fallan no se guardan y se reintentan en la siguiente ejecución.
+- **`registro_consultas.csv`**: una línea por petición, para diagnosticar fallos: hora (UTC), operación, número de fila del registro (o municipio), duración, resultado o nombre del error, peticiones restantes del día si OpenCage las informa, tipo y `confidence`. No guarda el texto de la consulta ni la llave.
+
+Entre dos peticiones pasa al menos `pausa_segundos`, también después de un error. Si OpenCage indica cuota o ritmo excedidos, tras 3 errores seguidos o al llegar a `limite_consultas`, el programa deja de consultar sin perder nada: lo que falte queda pendiente para la siguiente ejecución (la cuota del free trial se renueva a las 19:00 de Colombia).
+
+**Cuándo borrar la caché:** solo si cambian parámetros de las peticiones que no forman parte del texto de la consulta (en el código: país, número de resultados o recuadro de Medellín). Cambiar `formato_consulta` no lo requiere, porque el texto de la consulta ya es distinto. Borrarla obliga a repetir todas las peticiones.
 
 ### Columnas de la estandarización
 
@@ -202,11 +249,35 @@ El barrio se reconoce como el nombre más largo que coincide con el final del te
 
 | Sección | Contenido |
 |---|---|
-| `[area_metropolitana]` | `municipios`: los que se estandarizan y geocodifican. |
+| `[area_metropolitana]` | `municipios`: los que se estandarizan y ubican. |
 | `[subconjuntos.<nombre>]` | `municipios` de cada subconjunto; deben estar en el área metropolitana. |
 | `[columnas]` | Nombres de las columnas de ciudad y dirección del archivo de entrada. |
 | `[direcciones]` | `tipos_via`, `palabras_clave` y `equivalencias` de la estandarización. |
 | `[referencia]` | Rutas del GeoJSON y de las tablas de alias, y el municipio con polígonos de barrio (`MEDELLIN - ANTIOQUIA`). |
+| `[ubicacion]` | Parámetros de la ubicación por niveles y de las consultas a OpenCage (ver la tabla siguiente). |
+| `[puntos_municipios]` | Punto fijo de cada municipio del área metropolitana (nivel MUNICIPIO). No viene incluida: la añade `python -m georef consultar-municipios`. |
+
+Claves de `[ubicacion]`:
+
+| Clave | Valor incluido | Para qué sirve |
+|---|---|---|
+| `formato_consulta` | `"abreviado"` | Texto de la consulta: `abreviado` (`CL 10 #20-30, MEDELLIN, ANTIOQUIA, Colombia`) o `expandido` (`Calle 10 # 20-30, ...`). |
+| `confianza_minima` | `8` | `confidence` mínima (0 a 10) de un punto de OpenCage. Provisional: recalíbrala con `comparar-consultas`. |
+| `tipos_rechazados` | `["city", "county", "state", "country"]` | Tipos de resultado de OpenCage que nunca se aceptan. |
+| `tolerancia_metros` | `250` | Distancia máxima del punto a Medellín y al barrio (o comuna) declarado. Más lejos, prevalece lo declarado. |
+| `pausa_segundos` | `1` | Tiempo mínimo entre el inicio de dos peticiones. |
+| `limite_consultas` | `1000` | Máximo de peticiones por ejecución; las que falten quedan pendientes para la siguiente. |
+| `consulta_lugar_complemento` | `false` | Segunda consulta con el lugar con nombre del complemento (`UNIDAD LOS PINOS, LAURELES, ...`). |
+| `palabras_lugar` | `["UNIDAD", "EDIFICIO", ...]` | Palabras con las que empieza un lugar con nombre en el complemento. |
+| `nombres_via` | `{ CL = "Calle", ... }` | Nombre completo de cada tipo de vía para el formato `expandido`. Debe tener uno por cada `tipos_via`. |
+
+Cada municipio de `[puntos_municipios]` es una línea con su procedencia, que puedes corregir a mano:
+
+```toml
+[puntos_municipios]
+# Formato de cada línea (los números son de ejemplo, no son el punto real de Bello):
+"BELLO - ANTIOQUIA" = { latitud = 6.0, longitud = -75.0, fuente = "OpenCage", fecha = "2026-10-12" }
+```
 
 - **Añadir un municipio:** agrégalo a `municipios` de `[area_metropolitana]`, escrito **exactamente** como aparece en la columna de ciudad del archivo de entrada (por ejemplo `"RIONEGRO - ANTIOQUIA"`). Un municipio mal escrito no da error, pero no coincide con ningún registro.
 - **Añadir un subconjunto:**

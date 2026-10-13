@@ -55,6 +55,15 @@
                     <a class="variable" href="#RUTA_FUERA_AM">RUTA_FUERA_AM</a>
             </li>
             <li>
+                    <a class="variable" href="#RUTA_COORDENADAS_ANTERIOR">RUTA_COORDENADAS_ANTERIOR</a>
+            </li>
+            <li>
+                    <a class="variable" href="#RUTA_CACHE_CONSULTAS">RUTA_CACHE_CONSULTAS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#RUTA_REGISTRO_CONSULTAS">RUTA_REGISTRO_CONSULTAS</a>
+            </li>
+            <li>
                     <a class="variable" href="#RUTA_COORDENADAS_ANTIGUA">RUTA_COORDENADAS_ANTIGUA</a>
             </li>
             <li>
@@ -141,121 +150,129 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
 </span><span id="L-25"><a href="#L-25"><span class="linenos"> 25</span></a><span class="n">RUTA_ESPECIALES_AM</span> <span class="o">=</span> <span class="n">CARPETA_ESTANDARIZADO</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;especiales_</span><span class="si">{</span><span class="n">AREA_METROPOLITANA</span><span class="si">}</span><span class="s2">.xlsx&quot;</span>
 </span><span id="L-26"><a href="#L-26"><span class="linenos"> 26</span></a><span class="n">RUTA_FUERA_AM</span> <span class="o">=</span> <span class="n">CARPETA_ESTANDARIZADO</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;fuera_</span><span class="si">{</span><span class="n">AREA_METROPOLITANA</span><span class="si">}</span><span class="s2">.xlsx&quot;</span>
 </span><span id="L-27"><a href="#L-27"><span class="linenos"> 27</span></a>
-</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a><span class="c1"># Nombre que tenía el archivo de coordenadas antes de modularizacion-config.</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a><span class="n">RUTA_COORDENADAS_ANTIGUA</span> <span class="o">=</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="s2">&quot;coordenadas.xlsx&quot;</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a><span class="c1"># Copia del archivo de coordenadas de formato anterior a ubicacion-por-niveles (sin &#39;Nivel ubicacion&#39;).</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a><span class="n">RUTA_COORDENADAS_ANTERIOR</span> <span class="o">=</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;coordenadas_</span><span class="si">{</span><span class="n">AREA_METROPOLITANA</span><span class="si">}</span><span class="s2">_anterior.xlsx&quot;</span>
 </span><span id="L-30"><a href="#L-30"><span class="linenos"> 30</span></a>
-</span><span id="L-31"><a href="#L-31"><span class="linenos"> 31</span></a><span class="c1"># Prefijos de los archivos que no cuentan como archivo de entrada: ocultos (incluido el</span>
-</span><span id="L-32"><a href="#L-32"><span class="linenos"> 32</span></a><span class="c1"># bloqueo de LibreOffice, `.~lock.&lt;nombre&gt;#`) y bloqueo de Excel (`~$&lt;nombre&gt;`).</span>
-</span><span id="L-33"><a href="#L-33"><span class="linenos"> 33</span></a><span class="n">PREFIJOS_IGNORADOS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;~$&quot;</span><span class="p">)</span>
-</span><span id="L-34"><a href="#L-34"><span class="linenos"> 34</span></a>
+</span><span id="L-31"><a href="#L-31"><span class="linenos"> 31</span></a><span class="c1"># Caché de las respuestas de OpenCage y registro de diagnóstico de cada petición (contienen</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos"> 32</span></a><span class="c1"># direcciones: están en coordenadas/, que git ignora).</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos"> 33</span></a><span class="n">RUTA_CACHE_CONSULTAS</span> <span class="o">=</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="s2">&quot;cache_consultas.csv&quot;</span>
+</span><span id="L-34"><a href="#L-34"><span class="linenos"> 34</span></a><span class="n">RUTA_REGISTRO_CONSULTAS</span> <span class="o">=</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="s2">&quot;registro_consultas.csv&quot;</span>
 </span><span id="L-35"><a href="#L-35"><span class="linenos"> 35</span></a>
-</span><span id="L-36"><a href="#L-36"><span class="linenos"> 36</span></a><span class="k">def</span><span class="w"> </span><span class="nf">ruta_coordenadas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span id="L-37"><a href="#L-37"><span class="linenos"> 37</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivo de coordenadas de un área: `coordenadas/coordenadas_&lt;area&gt;.xlsx`.&quot;&quot;&quot;</span>
-</span><span id="L-38"><a href="#L-38"><span class="linenos"> 38</span></a>    <span class="k">return</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;coordenadas_</span><span class="si">{</span><span class="n">area</span><span class="si">}</span><span class="s2">.xlsx&quot;</span>
-</span><span id="L-39"><a href="#L-39"><span class="linenos"> 39</span></a>
-</span><span id="L-40"><a href="#L-40"><span class="linenos"> 40</span></a>
-</span><span id="L-41"><a href="#L-41"><span class="linenos"> 41</span></a><span class="k">def</span><span class="w"> </span><span class="nf">carpeta_mapas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span id="L-42"><a href="#L-42"><span class="linenos"> 42</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Carpeta de los mapas de un área: `mapas/&lt;area&gt;/`.&quot;&quot;&quot;</span>
-</span><span id="L-43"><a href="#L-43"><span class="linenos"> 43</span></a>    <span class="k">return</span> <span class="n">CARPETA_MAPAS</span> <span class="o">/</span> <span class="n">area</span>
-</span><span id="L-44"><a href="#L-44"><span class="linenos"> 44</span></a>
-</span><span id="L-45"><a href="#L-45"><span class="linenos"> 45</span></a>
-</span><span id="L-46"><a href="#L-46"><span class="linenos"> 46</span></a><span class="k">def</span><span class="w"> </span><span class="nf">estructura_programa</span><span class="p">():</span>
-</span><span id="L-47"><a href="#L-47"><span class="linenos"> 47</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-48"><a href="#L-48"><span class="linenos"> 48</span></a><span class="sd">    Crea la estructura de directorios requerida por el programa si no existen.</span>
-</span><span id="L-49"><a href="#L-49"><span class="linenos"> 49</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-50"><a href="#L-50"><span class="linenos"> 50</span></a>    <span class="n">rutas</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="L-51"><a href="#L-51"><span class="linenos"> 51</span></a>        <span class="n">CARPETA_ORIGINAL</span><span class="p">,</span>
-</span><span id="L-52"><a href="#L-52"><span class="linenos"> 52</span></a>        <span class="n">CARPETA_ESTANDARIZADO</span><span class="p">,</span>
-</span><span id="L-53"><a href="#L-53"><span class="linenos"> 53</span></a>        <span class="n">CARPETA_COORDENADAS</span><span class="p">,</span>
-</span><span id="L-54"><a href="#L-54"><span class="linenos"> 54</span></a>        <span class="n">carpeta_mapas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span><span class="p">,</span>
-</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a>    <span class="p">]</span>
-</span><span id="L-56"><a href="#L-56"><span class="linenos"> 56</span></a>    <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">rutas</span><span class="p">:</span>
-</span><span id="L-57"><a href="#L-57"><span class="linenos"> 57</span></a>        <span class="n">ruta</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="L-58"><a href="#L-58"><span class="linenos"> 58</span></a>
-</span><span id="L-59"><a href="#L-59"><span class="linenos"> 59</span></a>
-</span><span id="L-60"><a href="#L-60"><span class="linenos"> 60</span></a><span class="k">def</span><span class="w"> </span><span class="nf">archivos_de_entrada</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-</span><span id="L-61"><a href="#L-61"><span class="linenos"> 61</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivos de `original/` que cuentan como entrada: sin subdirectorios, ocultos ni bloqueos.&quot;&quot;&quot;</span>
-</span><span id="L-62"><a href="#L-62"><span class="linenos"> 62</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-</span><span id="L-63"><a href="#L-63"><span class="linenos"> 63</span></a>        <span class="k">return</span> <span class="p">[]</span>
-</span><span id="L-64"><a href="#L-64"><span class="linenos"> 64</span></a>    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
-</span><span id="L-65"><a href="#L-65"><span class="linenos"> 65</span></a>        <span class="n">ruta</span> <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
-</span><span id="L-66"><a href="#L-66"><span class="linenos"> 66</span></a>        <span class="k">if</span> <span class="n">ruta</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ruta</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">PREFIJOS_IGNORADOS</span><span class="p">)</span>
-</span><span id="L-67"><a href="#L-67"><span class="linenos"> 67</span></a>    <span class="p">)</span>
-</span><span id="L-68"><a href="#L-68"><span class="linenos"> 68</span></a>
-</span><span id="L-69"><a href="#L-69"><span class="linenos"> 69</span></a>
-</span><span id="L-70"><a href="#L-70"><span class="linenos"> 70</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_y_copiar_archivo_original</span><span class="p">():</span>
-</span><span id="L-71"><a href="#L-71"><span class="linenos"> 71</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-72"><a href="#L-72"><span class="linenos"> 72</span></a><span class="sd">    Si `original/` no contiene ningún archivo de entrada, permite al usuario seleccionar uno</span>
-</span><span id="L-73"><a href="#L-73"><span class="linenos"> 73</span></a><span class="sd">    mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú interactivo.</span>
-</span><span id="L-74"><a href="#L-74"><span class="linenos"> 74</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-75"><a href="#L-75"><span class="linenos"> 75</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos_de_entrada</span><span class="p">():</span>
-</span><span id="L-76"><a href="#L-76"><span class="linenos"> 76</span></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;La carpeta &#39;original&#39; está vacía. Selecciona un archivo para copiar allí.&quot;</span><span class="p">)</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos"> 36</span></a><span class="c1"># Nombre que tenía el archivo de coordenadas antes de modularizacion-config.</span>
+</span><span id="L-37"><a href="#L-37"><span class="linenos"> 37</span></a><span class="n">RUTA_COORDENADAS_ANTIGUA</span> <span class="o">=</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="s2">&quot;coordenadas.xlsx&quot;</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos"> 38</span></a>
+</span><span id="L-39"><a href="#L-39"><span class="linenos"> 39</span></a><span class="c1"># Prefijos de los archivos que no cuentan como archivo de entrada: ocultos (incluido el</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos"> 40</span></a><span class="c1"># bloqueo de LibreOffice, `.~lock.&lt;nombre&gt;#`) y bloqueo de Excel (`~$&lt;nombre&gt;`).</span>
+</span><span id="L-41"><a href="#L-41"><span class="linenos"> 41</span></a><span class="n">PREFIJOS_IGNORADOS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;~$&quot;</span><span class="p">)</span>
+</span><span id="L-42"><a href="#L-42"><span class="linenos"> 42</span></a>
+</span><span id="L-43"><a href="#L-43"><span class="linenos"> 43</span></a>
+</span><span id="L-44"><a href="#L-44"><span class="linenos"> 44</span></a><span class="k">def</span><span class="w"> </span><span class="nf">ruta_coordenadas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos"> 45</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivo de coordenadas de un área: `coordenadas/coordenadas_&lt;area&gt;.xlsx`.&quot;&quot;&quot;</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos"> 46</span></a>    <span class="k">return</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;coordenadas_</span><span class="si">{</span><span class="n">area</span><span class="si">}</span><span class="s2">.xlsx&quot;</span>
+</span><span id="L-47"><a href="#L-47"><span class="linenos"> 47</span></a>
+</span><span id="L-48"><a href="#L-48"><span class="linenos"> 48</span></a>
+</span><span id="L-49"><a href="#L-49"><span class="linenos"> 49</span></a><span class="k">def</span><span class="w"> </span><span class="nf">carpeta_mapas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span id="L-50"><a href="#L-50"><span class="linenos"> 50</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Carpeta de los mapas de un área: `mapas/&lt;area&gt;/`.&quot;&quot;&quot;</span>
+</span><span id="L-51"><a href="#L-51"><span class="linenos"> 51</span></a>    <span class="k">return</span> <span class="n">CARPETA_MAPAS</span> <span class="o">/</span> <span class="n">area</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos"> 52</span></a>
+</span><span id="L-53"><a href="#L-53"><span class="linenos"> 53</span></a>
+</span><span id="L-54"><a href="#L-54"><span class="linenos"> 54</span></a><span class="k">def</span><span class="w"> </span><span class="nf">estructura_programa</span><span class="p">():</span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-56"><a href="#L-56"><span class="linenos"> 56</span></a><span class="sd">    Crea la estructura de directorios requerida por el programa si no existen.</span>
+</span><span id="L-57"><a href="#L-57"><span class="linenos"> 57</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-58"><a href="#L-58"><span class="linenos"> 58</span></a>    <span class="n">rutas</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="L-59"><a href="#L-59"><span class="linenos"> 59</span></a>        <span class="n">CARPETA_ORIGINAL</span><span class="p">,</span>
+</span><span id="L-60"><a href="#L-60"><span class="linenos"> 60</span></a>        <span class="n">CARPETA_ESTANDARIZADO</span><span class="p">,</span>
+</span><span id="L-61"><a href="#L-61"><span class="linenos"> 61</span></a>        <span class="n">CARPETA_COORDENADAS</span><span class="p">,</span>
+</span><span id="L-62"><a href="#L-62"><span class="linenos"> 62</span></a>        <span class="n">carpeta_mapas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span><span class="p">,</span>
+</span><span id="L-63"><a href="#L-63"><span class="linenos"> 63</span></a>    <span class="p">]</span>
+</span><span id="L-64"><a href="#L-64"><span class="linenos"> 64</span></a>    <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">rutas</span><span class="p">:</span>
+</span><span id="L-65"><a href="#L-65"><span class="linenos"> 65</span></a>        <span class="n">ruta</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="L-66"><a href="#L-66"><span class="linenos"> 66</span></a>
+</span><span id="L-67"><a href="#L-67"><span class="linenos"> 67</span></a>
+</span><span id="L-68"><a href="#L-68"><span class="linenos"> 68</span></a><span class="k">def</span><span class="w"> </span><span class="nf">archivos_de_entrada</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span id="L-69"><a href="#L-69"><span class="linenos"> 69</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivos de `original/` que cuentan como entrada: sin subdirectorios, ocultos ni bloqueos.&quot;&quot;&quot;</span>
+</span><span id="L-70"><a href="#L-70"><span class="linenos"> 70</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span id="L-71"><a href="#L-71"><span class="linenos"> 71</span></a>        <span class="k">return</span> <span class="p">[]</span>
+</span><span id="L-72"><a href="#L-72"><span class="linenos"> 72</span></a>    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+</span><span id="L-73"><a href="#L-73"><span class="linenos"> 73</span></a>        <span class="n">ruta</span> <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
+</span><span id="L-74"><a href="#L-74"><span class="linenos"> 74</span></a>        <span class="k">if</span> <span class="n">ruta</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ruta</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">PREFIJOS_IGNORADOS</span><span class="p">)</span>
+</span><span id="L-75"><a href="#L-75"><span class="linenos"> 75</span></a>    <span class="p">)</span>
+</span><span id="L-76"><a href="#L-76"><span class="linenos"> 76</span></a>
 </span><span id="L-77"><a href="#L-77"><span class="linenos"> 77</span></a>
-</span><span id="L-78"><a href="#L-78"><span class="linenos"> 78</span></a>        <span class="c1"># Oculta la ventana principal de tkinter</span>
-</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a>        <span class="n">root</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
-</span><span id="L-80"><a href="#L-80"><span class="linenos"> 80</span></a>        <span class="n">root</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
-</span><span id="L-81"><a href="#L-81"><span class="linenos"> 81</span></a>
-</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a>        <span class="c1"># Abre el diálogo para seleccionar archivo</span>
-</span><span id="L-83"><a href="#L-83"><span class="linenos"> 83</span></a>        <span class="n">archivo_origen</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilename</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Selecciona un archivo para copiar a &#39;original&#39;&quot;</span><span class="p">)</span>
-</span><span id="L-84"><a href="#L-84"><span class="linenos"> 84</span></a>
-</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a>        <span class="k">if</span> <span class="n">archivo_origen</span><span class="p">:</span>
-</span><span id="L-86"><a href="#L-86"><span class="linenos"> 86</span></a>            <span class="c1"># Copia el archivo a la carpeta &#39;original&#39;</span>
-</span><span id="L-87"><a href="#L-87"><span class="linenos"> 87</span></a>            <span class="n">archivo_destino</span> <span class="o">=</span> <span class="n">CARPETA_ORIGINAL</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-</span><span id="L-88"><a href="#L-88"><span class="linenos"> 88</span></a>            <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">,</span> <span class="n">archivo_destino</span><span class="p">)</span>
-</span><span id="L-89"><a href="#L-89"><span class="linenos"> 89</span></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Archivo copiado a: </span><span class="si">{</span><span class="n">archivo_destino</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="L-90"><a href="#L-90"><span class="linenos"> 90</span></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="L-91"><a href="#L-91"><span class="linenos"> 91</span></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No se seleccionó ningún archivo.&quot;</span><span class="p">)</span>
+</span><span id="L-78"><a href="#L-78"><span class="linenos"> 78</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_y_copiar_archivo_original</span><span class="p">():</span>
+</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-80"><a href="#L-80"><span class="linenos"> 80</span></a><span class="sd">    Si `original/` no contiene ningún archivo de entrada, permite al usuario seleccionar uno</span>
+</span><span id="L-81"><a href="#L-81"><span class="linenos"> 81</span></a><span class="sd">    mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú interactivo.</span>
+</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-83"><a href="#L-83"><span class="linenos"> 83</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos_de_entrada</span><span class="p">():</span>
+</span><span id="L-84"><a href="#L-84"><span class="linenos"> 84</span></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;La carpeta &#39;original&#39; está vacía. Selecciona un archivo para copiar allí.&quot;</span><span class="p">)</span>
+</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a>
+</span><span id="L-86"><a href="#L-86"><span class="linenos"> 86</span></a>        <span class="c1"># Oculta la ventana principal de tkinter</span>
+</span><span id="L-87"><a href="#L-87"><span class="linenos"> 87</span></a>        <span class="n">root</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
+</span><span id="L-88"><a href="#L-88"><span class="linenos"> 88</span></a>        <span class="n">root</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
+</span><span id="L-89"><a href="#L-89"><span class="linenos"> 89</span></a>
+</span><span id="L-90"><a href="#L-90"><span class="linenos"> 90</span></a>        <span class="c1"># Abre el diálogo para seleccionar archivo</span>
+</span><span id="L-91"><a href="#L-91"><span class="linenos"> 91</span></a>        <span class="n">archivo_origen</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilename</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Selecciona un archivo para copiar a &#39;original&#39;&quot;</span><span class="p">)</span>
 </span><span id="L-92"><a href="#L-92"><span class="linenos"> 92</span></a>
-</span><span id="L-93"><a href="#L-93"><span class="linenos"> 93</span></a>
-</span><span id="L-94"><a href="#L-94"><span class="linenos"> 94</span></a><span class="k">def</span><span class="w"> </span><span class="nf">leer_archivo_original</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-96"><a href="#L-96"><span class="linenos"> 96</span></a><span class="sd">    Lee el único archivo de entrada de la carpeta &#39;original&#39; y lo carga en un DataFrame.</span>
-</span><span id="L-97"><a href="#L-97"><span class="linenos"> 97</span></a>
-</span><span id="L-98"><a href="#L-98"><span class="linenos"> 98</span></a><span class="sd">    Termina el programa con un mensaje si no hay ningún archivo de entrada o hay más de uno.</span>
-</span><span id="L-99"><a href="#L-99"><span class="linenos"> 99</span></a>
-</span><span id="L-100"><a href="#L-100"><span class="linenos">100</span></a><span class="sd">    Returns:</span>
-</span><span id="L-101"><a href="#L-101"><span class="linenos">101</span></a><span class="sd">        pd.DataFrame: Datos cargados desde el archivo Excel.</span>
-</span><span id="L-102"><a href="#L-102"><span class="linenos">102</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-103"><a href="#L-103"><span class="linenos">103</span></a>    <span class="n">archivos</span> <span class="o">=</span> <span class="n">archivos_de_entrada</span><span class="p">()</span>
-</span><span id="L-104"><a href="#L-104"><span class="linenos">104</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">archivos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-</span><span id="L-105"><a href="#L-105"><span class="linenos">105</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: Hay más de un archivo en la carpeta &#39;original&#39;. Asegúrate de que solo haya uno.&quot;</span><span class="p">)</span>
-</span><span id="L-106"><a href="#L-106"><span class="linenos">106</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos</span><span class="p">:</span>
-</span><span id="L-107"><a href="#L-107"><span class="linenos">107</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: No hay ningún archivo en la carpeta &#39;original&#39;. &quot;</span>
-</span><span id="L-108"><a href="#L-108"><span class="linenos">108</span></a>                 <span class="s2">&quot;Coloca allí el archivo de Excel con las direcciones.&quot;</span><span class="p">)</span>
-</span><span id="L-109"><a href="#L-109"><span class="linenos">109</span></a>    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">archivos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span id="L-110"><a href="#L-110"><span class="linenos">110</span></a>
-</span><span id="L-111"><a href="#L-111"><span class="linenos">111</span></a>
-</span><span id="L-112"><a href="#L-112"><span class="linenos">112</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_columnas</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columnas</span><span class="p">:</span> <span class="n">Columnas</span><span class="p">):</span>
-</span><span id="L-113"><a href="#L-113"><span class="linenos">113</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Termina el programa si el archivo de entrada no tiene alguna de las columnas configuradas.&quot;&quot;&quot;</span>
-</span><span id="L-114"><a href="#L-114"><span class="linenos">114</span></a>    <span class="n">faltantes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nombre</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="p">(</span><span class="n">columnas</span><span class="o">.</span><span class="n">ciudad</span><span class="p">,</span> <span class="n">columnas</span><span class="o">.</span><span class="n">direccion</span><span class="p">)</span> <span class="k">if</span> <span class="n">nombre</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-</span><span id="L-115"><a href="#L-115"><span class="linenos">115</span></a>    <span class="k">if</span> <span class="n">faltantes</span><span class="p">:</span>
-</span><span id="L-116"><a href="#L-116"><span class="linenos">116</span></a>        <span class="n">nombres</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">nombre</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="n">faltantes</span><span class="p">)</span>
-</span><span id="L-117"><a href="#L-117"><span class="linenos">117</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: El archivo de entrada no tiene la columna </span><span class="si">{</span><span class="n">nombres</span><span class="si">}</span><span class="s2">. &quot;</span>
-</span><span id="L-118"><a href="#L-118"><span class="linenos">118</span></a>                 <span class="s2">&quot;Revisa la sección [columnas] de la configuración.&quot;</span><span class="p">)</span>
+</span><span id="L-93"><a href="#L-93"><span class="linenos"> 93</span></a>        <span class="k">if</span> <span class="n">archivo_origen</span><span class="p">:</span>
+</span><span id="L-94"><a href="#L-94"><span class="linenos"> 94</span></a>            <span class="c1"># Copia el archivo a la carpeta &#39;original&#39;</span>
+</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a>            <span class="n">archivo_destino</span> <span class="o">=</span> <span class="n">CARPETA_ORIGINAL</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+</span><span id="L-96"><a href="#L-96"><span class="linenos"> 96</span></a>            <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">,</span> <span class="n">archivo_destino</span><span class="p">)</span>
+</span><span id="L-97"><a href="#L-97"><span class="linenos"> 97</span></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Archivo copiado a: </span><span class="si">{</span><span class="n">archivo_destino</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-98"><a href="#L-98"><span class="linenos"> 98</span></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="L-99"><a href="#L-99"><span class="linenos"> 99</span></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No se seleccionó ningún archivo.&quot;</span><span class="p">)</span>
+</span><span id="L-100"><a href="#L-100"><span class="linenos">100</span></a>
+</span><span id="L-101"><a href="#L-101"><span class="linenos">101</span></a>
+</span><span id="L-102"><a href="#L-102"><span class="linenos">102</span></a><span class="k">def</span><span class="w"> </span><span class="nf">leer_archivo_original</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="L-103"><a href="#L-103"><span class="linenos">103</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-104"><a href="#L-104"><span class="linenos">104</span></a><span class="sd">    Lee el único archivo de entrada de la carpeta &#39;original&#39; y lo carga en un DataFrame.</span>
+</span><span id="L-105"><a href="#L-105"><span class="linenos">105</span></a>
+</span><span id="L-106"><a href="#L-106"><span class="linenos">106</span></a><span class="sd">    Termina el programa con un mensaje si no hay ningún archivo de entrada o hay más de uno.</span>
+</span><span id="L-107"><a href="#L-107"><span class="linenos">107</span></a>
+</span><span id="L-108"><a href="#L-108"><span class="linenos">108</span></a><span class="sd">    Returns:</span>
+</span><span id="L-109"><a href="#L-109"><span class="linenos">109</span></a><span class="sd">        pd.DataFrame: Datos cargados desde el archivo Excel.</span>
+</span><span id="L-110"><a href="#L-110"><span class="linenos">110</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-111"><a href="#L-111"><span class="linenos">111</span></a>    <span class="n">archivos</span> <span class="o">=</span> <span class="n">archivos_de_entrada</span><span class="p">()</span>
+</span><span id="L-112"><a href="#L-112"><span class="linenos">112</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">archivos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="L-113"><a href="#L-113"><span class="linenos">113</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: Hay más de un archivo en la carpeta &#39;original&#39;. Asegúrate de que solo haya uno.&quot;</span><span class="p">)</span>
+</span><span id="L-114"><a href="#L-114"><span class="linenos">114</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos</span><span class="p">:</span>
+</span><span id="L-115"><a href="#L-115"><span class="linenos">115</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: No hay ningún archivo en la carpeta &#39;original&#39;. &quot;</span>
+</span><span id="L-116"><a href="#L-116"><span class="linenos">116</span></a>                 <span class="s2">&quot;Coloca allí el archivo de Excel con las direcciones.&quot;</span><span class="p">)</span>
+</span><span id="L-117"><a href="#L-117"><span class="linenos">117</span></a>    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">archivos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="L-118"><a href="#L-118"><span class="linenos">118</span></a>
 </span><span id="L-119"><a href="#L-119"><span class="linenos">119</span></a>
-</span><span id="L-120"><a href="#L-120"><span class="linenos">120</span></a>
-</span><span id="L-121"><a href="#L-121"><span class="linenos">121</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_principales_am</span><span class="p">():</span>
-</span><span id="L-122"><a href="#L-122"><span class="linenos">122</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-123"><a href="#L-123"><span class="linenos">123</span></a><span class="sd">    Termina el programa con un mensaje si no existe el archivo de direcciones principales estandarizadas,</span>
-</span><span id="L-124"><a href="#L-124"><span class="linenos">124</span></a><span class="sd">    necesario para la conversión de coordenadas cuando aún no hay archivo de coordenadas.</span>
-</span><span id="L-125"><a href="#L-125"><span class="linenos">125</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-126"><a href="#L-126"><span class="linenos">126</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span id="L-127"><a href="#L-127"><span class="linenos">127</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: No se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
-</span><span id="L-128"><a href="#L-128"><span class="linenos">128</span></a>                 <span class="s2">&quot;Ejecuta primero la estandarización de direcciones (opción 1).&quot;</span><span class="p">)</span>
-</span><span id="L-129"><a href="#L-129"><span class="linenos">129</span></a>
-</span><span id="L-130"><a href="#L-130"><span class="linenos">130</span></a>
-</span><span id="L-131"><a href="#L-131"><span class="linenos">131</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_nombre_antiguo_coordenadas</span><span class="p">():</span>
-</span><span id="L-132"><a href="#L-132"><span class="linenos">132</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-133"><a href="#L-133"><span class="linenos">133</span></a><span class="sd">    Termina el programa si solo existe el archivo de coordenadas con el nombre anterior.</span>
-</span><span id="L-134"><a href="#L-134"><span class="linenos">134</span></a>
-</span><span id="L-135"><a href="#L-135"><span class="linenos">135</span></a><span class="sd">    Sin esta comprobación, la conversión no encontraría el archivo nuevo y volvería a</span>
-</span><span id="L-136"><a href="#L-136"><span class="linenos">136</span></a><span class="sd">    geocodificar todo desde el principio, gastando cuota de la API.</span>
-</span><span id="L-137"><a href="#L-137"><span class="linenos">137</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-138"><a href="#L-138"><span class="linenos">138</span></a>    <span class="n">nueva</span> <span class="o">=</span> <span class="n">ruta_coordenadas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span>
-</span><span id="L-139"><a href="#L-139"><span class="linenos">139</span></a>    <span class="k">if</span> <span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">nueva</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span id="L-140"><a href="#L-140"><span class="linenos">140</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;, el nombre anterior del archivo &quot;</span>
-</span><span id="L-141"><a href="#L-141"><span class="linenos">141</span></a>                 <span class="sa">f</span><span class="s2">&quot;de coordenadas. Renómbralo a &#39;</span><span class="si">{</span><span class="n">nueva</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; y vuelve a ejecutar &quot;</span>
-</span><span id="L-142"><a href="#L-142"><span class="linenos">142</span></a>                 <span class="s2">&quot;(no hace falta volver a geocodificar).&quot;</span><span class="p">)</span>
+</span><span id="L-120"><a href="#L-120"><span class="linenos">120</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_columnas</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columnas</span><span class="p">:</span> <span class="n">Columnas</span><span class="p">):</span>
+</span><span id="L-121"><a href="#L-121"><span class="linenos">121</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Termina el programa si el archivo de entrada no tiene alguna de las columnas configuradas.&quot;&quot;&quot;</span>
+</span><span id="L-122"><a href="#L-122"><span class="linenos">122</span></a>    <span class="n">faltantes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nombre</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="p">(</span><span class="n">columnas</span><span class="o">.</span><span class="n">ciudad</span><span class="p">,</span> <span class="n">columnas</span><span class="o">.</span><span class="n">direccion</span><span class="p">)</span> <span class="k">if</span> <span class="n">nombre</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+</span><span id="L-123"><a href="#L-123"><span class="linenos">123</span></a>    <span class="k">if</span> <span class="n">faltantes</span><span class="p">:</span>
+</span><span id="L-124"><a href="#L-124"><span class="linenos">124</span></a>        <span class="n">nombres</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">nombre</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="n">faltantes</span><span class="p">)</span>
+</span><span id="L-125"><a href="#L-125"><span class="linenos">125</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: El archivo de entrada no tiene la columna </span><span class="si">{</span><span class="n">nombres</span><span class="si">}</span><span class="s2">. &quot;</span>
+</span><span id="L-126"><a href="#L-126"><span class="linenos">126</span></a>                 <span class="s2">&quot;Revisa la sección [columnas] de la configuración.&quot;</span><span class="p">)</span>
+</span><span id="L-127"><a href="#L-127"><span class="linenos">127</span></a>
+</span><span id="L-128"><a href="#L-128"><span class="linenos">128</span></a>
+</span><span id="L-129"><a href="#L-129"><span class="linenos">129</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_principales_am</span><span class="p">():</span>
+</span><span id="L-130"><a href="#L-130"><span class="linenos">130</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-131"><a href="#L-131"><span class="linenos">131</span></a><span class="sd">    Termina el programa con un mensaje si no existe el archivo de direcciones principales estandarizadas,</span>
+</span><span id="L-132"><a href="#L-132"><span class="linenos">132</span></a><span class="sd">    necesario para la conversión de coordenadas cuando aún no hay archivo de coordenadas.</span>
+</span><span id="L-133"><a href="#L-133"><span class="linenos">133</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-134"><a href="#L-134"><span class="linenos">134</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span id="L-135"><a href="#L-135"><span class="linenos">135</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: No se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+</span><span id="L-136"><a href="#L-136"><span class="linenos">136</span></a>                 <span class="s2">&quot;Ejecuta primero la estandarización de direcciones (opción 1).&quot;</span><span class="p">)</span>
+</span><span id="L-137"><a href="#L-137"><span class="linenos">137</span></a>
+</span><span id="L-138"><a href="#L-138"><span class="linenos">138</span></a>
+</span><span id="L-139"><a href="#L-139"><span class="linenos">139</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_nombre_antiguo_coordenadas</span><span class="p">():</span>
+</span><span id="L-140"><a href="#L-140"><span class="linenos">140</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-141"><a href="#L-141"><span class="linenos">141</span></a><span class="sd">    Termina el programa si solo existe el archivo de coordenadas con el nombre anterior.</span>
+</span><span id="L-142"><a href="#L-142"><span class="linenos">142</span></a>
+</span><span id="L-143"><a href="#L-143"><span class="linenos">143</span></a><span class="sd">    Sin esta comprobación, la conversión no encontraría el archivo nuevo y volvería a</span>
+</span><span id="L-144"><a href="#L-144"><span class="linenos">144</span></a><span class="sd">    geocodificar todo desde el principio, gastando cuota de la API.</span>
+</span><span id="L-145"><a href="#L-145"><span class="linenos">145</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-146"><a href="#L-146"><span class="linenos">146</span></a>    <span class="n">nueva</span> <span class="o">=</span> <span class="n">ruta_coordenadas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span>
+</span><span id="L-147"><a href="#L-147"><span class="linenos">147</span></a>    <span class="k">if</span> <span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">nueva</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span id="L-148"><a href="#L-148"><span class="linenos">148</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;, el nombre anterior del archivo &quot;</span>
+</span><span id="L-149"><a href="#L-149"><span class="linenos">149</span></a>                 <span class="sa">f</span><span class="s2">&quot;de coordenadas. Renómbralo a &#39;</span><span class="si">{</span><span class="n">nueva</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; y vuelve a ejecutar &quot;</span>
+</span><span id="L-150"><a href="#L-150"><span class="linenos">150</span></a>                 <span class="s2">&quot;(no hace falta volver a geocodificar).&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -356,6 +373,42 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
     
 
                 </section>
+                <section id="RUTA_COORDENADAS_ANTERIOR">
+                    <div class="attr variable">
+            <span class="name">RUTA_COORDENADAS_ANTERIOR</span>        =
+<span class="default_value">PosixPath(&#39;coordenadas/coordenadas_area_metropolitana_anterior.xlsx&#39;)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RUTA_COORDENADAS_ANTERIOR"></a>
+    
+    
+
+                </section>
+                <section id="RUTA_CACHE_CONSULTAS">
+                    <div class="attr variable">
+            <span class="name">RUTA_CACHE_CONSULTAS</span>        =
+<span class="default_value">PosixPath(&#39;coordenadas/cache_consultas.csv&#39;)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RUTA_CACHE_CONSULTAS"></a>
+    
+    
+
+                </section>
+                <section id="RUTA_REGISTRO_CONSULTAS">
+                    <div class="attr variable">
+            <span class="name">RUTA_REGISTRO_CONSULTAS</span>        =
+<span class="default_value">PosixPath(&#39;coordenadas/registro_consultas.csv&#39;)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RUTA_REGISTRO_CONSULTAS"></a>
+    
+    
+
+                </section>
                 <section id="RUTA_COORDENADAS_ANTIGUA">
                     <div class="attr variable">
             <span class="name">RUTA_COORDENADAS_ANTIGUA</span>        =
@@ -391,9 +444,9 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
 
     </div>
     <a class="headerlink" href="#ruta_coordenadas"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ruta_coordenadas-37"><a href="#ruta_coordenadas-37"><span class="linenos">37</span></a><span class="k">def</span><span class="w"> </span><span class="nf">ruta_coordenadas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span id="ruta_coordenadas-38"><a href="#ruta_coordenadas-38"><span class="linenos">38</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivo de coordenadas de un área: `coordenadas/coordenadas_&lt;area&gt;.xlsx`.&quot;&quot;&quot;</span>
-</span><span id="ruta_coordenadas-39"><a href="#ruta_coordenadas-39"><span class="linenos">39</span></a>    <span class="k">return</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;coordenadas_</span><span class="si">{</span><span class="n">area</span><span class="si">}</span><span class="s2">.xlsx&quot;</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ruta_coordenadas-45"><a href="#ruta_coordenadas-45"><span class="linenos">45</span></a><span class="k">def</span><span class="w"> </span><span class="nf">ruta_coordenadas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span id="ruta_coordenadas-46"><a href="#ruta_coordenadas-46"><span class="linenos">46</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivo de coordenadas de un área: `coordenadas/coordenadas_&lt;area&gt;.xlsx`.&quot;&quot;&quot;</span>
+</span><span id="ruta_coordenadas-47"><a href="#ruta_coordenadas-47"><span class="linenos">47</span></a>    <span class="k">return</span> <span class="n">CARPETA_COORDENADAS</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;coordenadas_</span><span class="si">{</span><span class="n">area</span><span class="si">}</span><span class="s2">.xlsx&quot;</span>
 </span></pre></div>
 
 
@@ -413,9 +466,9 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
 
     </div>
     <a class="headerlink" href="#carpeta_mapas"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="carpeta_mapas-42"><a href="#carpeta_mapas-42"><span class="linenos">42</span></a><span class="k">def</span><span class="w"> </span><span class="nf">carpeta_mapas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span id="carpeta_mapas-43"><a href="#carpeta_mapas-43"><span class="linenos">43</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Carpeta de los mapas de un área: `mapas/&lt;area&gt;/`.&quot;&quot;&quot;</span>
-</span><span id="carpeta_mapas-44"><a href="#carpeta_mapas-44"><span class="linenos">44</span></a>    <span class="k">return</span> <span class="n">CARPETA_MAPAS</span> <span class="o">/</span> <span class="n">area</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="carpeta_mapas-50"><a href="#carpeta_mapas-50"><span class="linenos">50</span></a><span class="k">def</span><span class="w"> </span><span class="nf">carpeta_mapas</span><span class="p">(</span><span class="n">area</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span id="carpeta_mapas-51"><a href="#carpeta_mapas-51"><span class="linenos">51</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Carpeta de los mapas de un área: `mapas/&lt;area&gt;/`.&quot;&quot;&quot;</span>
+</span><span id="carpeta_mapas-52"><a href="#carpeta_mapas-52"><span class="linenos">52</span></a>    <span class="k">return</span> <span class="n">CARPETA_MAPAS</span> <span class="o">/</span> <span class="n">area</span>
 </span></pre></div>
 
 
@@ -435,18 +488,18 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
 
     </div>
     <a class="headerlink" href="#estructura_programa"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="estructura_programa-47"><a href="#estructura_programa-47"><span class="linenos">47</span></a><span class="k">def</span><span class="w"> </span><span class="nf">estructura_programa</span><span class="p">():</span>
-</span><span id="estructura_programa-48"><a href="#estructura_programa-48"><span class="linenos">48</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="estructura_programa-49"><a href="#estructura_programa-49"><span class="linenos">49</span></a><span class="sd">    Crea la estructura de directorios requerida por el programa si no existen.</span>
-</span><span id="estructura_programa-50"><a href="#estructura_programa-50"><span class="linenos">50</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="estructura_programa-51"><a href="#estructura_programa-51"><span class="linenos">51</span></a>    <span class="n">rutas</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="estructura_programa-52"><a href="#estructura_programa-52"><span class="linenos">52</span></a>        <span class="n">CARPETA_ORIGINAL</span><span class="p">,</span>
-</span><span id="estructura_programa-53"><a href="#estructura_programa-53"><span class="linenos">53</span></a>        <span class="n">CARPETA_ESTANDARIZADO</span><span class="p">,</span>
-</span><span id="estructura_programa-54"><a href="#estructura_programa-54"><span class="linenos">54</span></a>        <span class="n">CARPETA_COORDENADAS</span><span class="p">,</span>
-</span><span id="estructura_programa-55"><a href="#estructura_programa-55"><span class="linenos">55</span></a>        <span class="n">carpeta_mapas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span><span class="p">,</span>
-</span><span id="estructura_programa-56"><a href="#estructura_programa-56"><span class="linenos">56</span></a>    <span class="p">]</span>
-</span><span id="estructura_programa-57"><a href="#estructura_programa-57"><span class="linenos">57</span></a>    <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">rutas</span><span class="p">:</span>
-</span><span id="estructura_programa-58"><a href="#estructura_programa-58"><span class="linenos">58</span></a>        <span class="n">ruta</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="estructura_programa-55"><a href="#estructura_programa-55"><span class="linenos">55</span></a><span class="k">def</span><span class="w"> </span><span class="nf">estructura_programa</span><span class="p">():</span>
+</span><span id="estructura_programa-56"><a href="#estructura_programa-56"><span class="linenos">56</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="estructura_programa-57"><a href="#estructura_programa-57"><span class="linenos">57</span></a><span class="sd">    Crea la estructura de directorios requerida por el programa si no existen.</span>
+</span><span id="estructura_programa-58"><a href="#estructura_programa-58"><span class="linenos">58</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="estructura_programa-59"><a href="#estructura_programa-59"><span class="linenos">59</span></a>    <span class="n">rutas</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="estructura_programa-60"><a href="#estructura_programa-60"><span class="linenos">60</span></a>        <span class="n">CARPETA_ORIGINAL</span><span class="p">,</span>
+</span><span id="estructura_programa-61"><a href="#estructura_programa-61"><span class="linenos">61</span></a>        <span class="n">CARPETA_ESTANDARIZADO</span><span class="p">,</span>
+</span><span id="estructura_programa-62"><a href="#estructura_programa-62"><span class="linenos">62</span></a>        <span class="n">CARPETA_COORDENADAS</span><span class="p">,</span>
+</span><span id="estructura_programa-63"><a href="#estructura_programa-63"><span class="linenos">63</span></a>        <span class="n">carpeta_mapas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span><span class="p">,</span>
+</span><span id="estructura_programa-64"><a href="#estructura_programa-64"><span class="linenos">64</span></a>    <span class="p">]</span>
+</span><span id="estructura_programa-65"><a href="#estructura_programa-65"><span class="linenos">65</span></a>    <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">rutas</span><span class="p">:</span>
+</span><span id="estructura_programa-66"><a href="#estructura_programa-66"><span class="linenos">66</span></a>        <span class="n">ruta</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -466,14 +519,14 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
 
     </div>
     <a class="headerlink" href="#archivos_de_entrada"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="archivos_de_entrada-61"><a href="#archivos_de_entrada-61"><span class="linenos">61</span></a><span class="k">def</span><span class="w"> </span><span class="nf">archivos_de_entrada</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-</span><span id="archivos_de_entrada-62"><a href="#archivos_de_entrada-62"><span class="linenos">62</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivos de `original/` que cuentan como entrada: sin subdirectorios, ocultos ni bloqueos.&quot;&quot;&quot;</span>
-</span><span id="archivos_de_entrada-63"><a href="#archivos_de_entrada-63"><span class="linenos">63</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-</span><span id="archivos_de_entrada-64"><a href="#archivos_de_entrada-64"><span class="linenos">64</span></a>        <span class="k">return</span> <span class="p">[]</span>
-</span><span id="archivos_de_entrada-65"><a href="#archivos_de_entrada-65"><span class="linenos">65</span></a>    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
-</span><span id="archivos_de_entrada-66"><a href="#archivos_de_entrada-66"><span class="linenos">66</span></a>        <span class="n">ruta</span> <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
-</span><span id="archivos_de_entrada-67"><a href="#archivos_de_entrada-67"><span class="linenos">67</span></a>        <span class="k">if</span> <span class="n">ruta</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ruta</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">PREFIJOS_IGNORADOS</span><span class="p">)</span>
-</span><span id="archivos_de_entrada-68"><a href="#archivos_de_entrada-68"><span class="linenos">68</span></a>    <span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="archivos_de_entrada-69"><a href="#archivos_de_entrada-69"><span class="linenos">69</span></a><span class="k">def</span><span class="w"> </span><span class="nf">archivos_de_entrada</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span id="archivos_de_entrada-70"><a href="#archivos_de_entrada-70"><span class="linenos">70</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Archivos de `original/` que cuentan como entrada: sin subdirectorios, ocultos ni bloqueos.&quot;&quot;&quot;</span>
+</span><span id="archivos_de_entrada-71"><a href="#archivos_de_entrada-71"><span class="linenos">71</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span id="archivos_de_entrada-72"><a href="#archivos_de_entrada-72"><span class="linenos">72</span></a>        <span class="k">return</span> <span class="p">[]</span>
+</span><span id="archivos_de_entrada-73"><a href="#archivos_de_entrada-73"><span class="linenos">73</span></a>    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+</span><span id="archivos_de_entrada-74"><a href="#archivos_de_entrada-74"><span class="linenos">74</span></a>        <span class="n">ruta</span> <span class="k">for</span> <span class="n">ruta</span> <span class="ow">in</span> <span class="n">CARPETA_ORIGINAL</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
+</span><span id="archivos_de_entrada-75"><a href="#archivos_de_entrada-75"><span class="linenos">75</span></a>        <span class="k">if</span> <span class="n">ruta</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ruta</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">PREFIJOS_IGNORADOS</span><span class="p">)</span>
+</span><span id="archivos_de_entrada-76"><a href="#archivos_de_entrada-76"><span class="linenos">76</span></a>    <span class="p">)</span>
 </span></pre></div>
 
 
@@ -493,28 +546,28 @@ identificador del área: <code>area_metropolitana</code> o el nombre de un subco
 
     </div>
     <a class="headerlink" href="#verificar_y_copiar_archivo_original"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_y_copiar_archivo_original-71"><a href="#verificar_y_copiar_archivo_original-71"><span class="linenos">71</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_y_copiar_archivo_original</span><span class="p">():</span>
-</span><span id="verificar_y_copiar_archivo_original-72"><a href="#verificar_y_copiar_archivo_original-72"><span class="linenos">72</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="verificar_y_copiar_archivo_original-73"><a href="#verificar_y_copiar_archivo_original-73"><span class="linenos">73</span></a><span class="sd">    Si `original/` no contiene ningún archivo de entrada, permite al usuario seleccionar uno</span>
-</span><span id="verificar_y_copiar_archivo_original-74"><a href="#verificar_y_copiar_archivo_original-74"><span class="linenos">74</span></a><span class="sd">    mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú interactivo.</span>
-</span><span id="verificar_y_copiar_archivo_original-75"><a href="#verificar_y_copiar_archivo_original-75"><span class="linenos">75</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="verificar_y_copiar_archivo_original-76"><a href="#verificar_y_copiar_archivo_original-76"><span class="linenos">76</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos_de_entrada</span><span class="p">():</span>
-</span><span id="verificar_y_copiar_archivo_original-77"><a href="#verificar_y_copiar_archivo_original-77"><span class="linenos">77</span></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;La carpeta &#39;original&#39; está vacía. Selecciona un archivo para copiar allí.&quot;</span><span class="p">)</span>
-</span><span id="verificar_y_copiar_archivo_original-78"><a href="#verificar_y_copiar_archivo_original-78"><span class="linenos">78</span></a>
-</span><span id="verificar_y_copiar_archivo_original-79"><a href="#verificar_y_copiar_archivo_original-79"><span class="linenos">79</span></a>        <span class="c1"># Oculta la ventana principal de tkinter</span>
-</span><span id="verificar_y_copiar_archivo_original-80"><a href="#verificar_y_copiar_archivo_original-80"><span class="linenos">80</span></a>        <span class="n">root</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
-</span><span id="verificar_y_copiar_archivo_original-81"><a href="#verificar_y_copiar_archivo_original-81"><span class="linenos">81</span></a>        <span class="n">root</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
-</span><span id="verificar_y_copiar_archivo_original-82"><a href="#verificar_y_copiar_archivo_original-82"><span class="linenos">82</span></a>
-</span><span id="verificar_y_copiar_archivo_original-83"><a href="#verificar_y_copiar_archivo_original-83"><span class="linenos">83</span></a>        <span class="c1"># Abre el diálogo para seleccionar archivo</span>
-</span><span id="verificar_y_copiar_archivo_original-84"><a href="#verificar_y_copiar_archivo_original-84"><span class="linenos">84</span></a>        <span class="n">archivo_origen</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilename</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Selecciona un archivo para copiar a &#39;original&#39;&quot;</span><span class="p">)</span>
-</span><span id="verificar_y_copiar_archivo_original-85"><a href="#verificar_y_copiar_archivo_original-85"><span class="linenos">85</span></a>
-</span><span id="verificar_y_copiar_archivo_original-86"><a href="#verificar_y_copiar_archivo_original-86"><span class="linenos">86</span></a>        <span class="k">if</span> <span class="n">archivo_origen</span><span class="p">:</span>
-</span><span id="verificar_y_copiar_archivo_original-87"><a href="#verificar_y_copiar_archivo_original-87"><span class="linenos">87</span></a>            <span class="c1"># Copia el archivo a la carpeta &#39;original&#39;</span>
-</span><span id="verificar_y_copiar_archivo_original-88"><a href="#verificar_y_copiar_archivo_original-88"><span class="linenos">88</span></a>            <span class="n">archivo_destino</span> <span class="o">=</span> <span class="n">CARPETA_ORIGINAL</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-</span><span id="verificar_y_copiar_archivo_original-89"><a href="#verificar_y_copiar_archivo_original-89"><span class="linenos">89</span></a>            <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">,</span> <span class="n">archivo_destino</span><span class="p">)</span>
-</span><span id="verificar_y_copiar_archivo_original-90"><a href="#verificar_y_copiar_archivo_original-90"><span class="linenos">90</span></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Archivo copiado a: </span><span class="si">{</span><span class="n">archivo_destino</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="verificar_y_copiar_archivo_original-91"><a href="#verificar_y_copiar_archivo_original-91"><span class="linenos">91</span></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="verificar_y_copiar_archivo_original-92"><a href="#verificar_y_copiar_archivo_original-92"><span class="linenos">92</span></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No se seleccionó ningún archivo.&quot;</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_y_copiar_archivo_original-79"><a href="#verificar_y_copiar_archivo_original-79"><span class="linenos"> 79</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_y_copiar_archivo_original</span><span class="p">():</span>
+</span><span id="verificar_y_copiar_archivo_original-80"><a href="#verificar_y_copiar_archivo_original-80"><span class="linenos"> 80</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="verificar_y_copiar_archivo_original-81"><a href="#verificar_y_copiar_archivo_original-81"><span class="linenos"> 81</span></a><span class="sd">    Si `original/` no contiene ningún archivo de entrada, permite al usuario seleccionar uno</span>
+</span><span id="verificar_y_copiar_archivo_original-82"><a href="#verificar_y_copiar_archivo_original-82"><span class="linenos"> 82</span></a><span class="sd">    mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú interactivo.</span>
+</span><span id="verificar_y_copiar_archivo_original-83"><a href="#verificar_y_copiar_archivo_original-83"><span class="linenos"> 83</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="verificar_y_copiar_archivo_original-84"><a href="#verificar_y_copiar_archivo_original-84"><span class="linenos"> 84</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos_de_entrada</span><span class="p">():</span>
+</span><span id="verificar_y_copiar_archivo_original-85"><a href="#verificar_y_copiar_archivo_original-85"><span class="linenos"> 85</span></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;La carpeta &#39;original&#39; está vacía. Selecciona un archivo para copiar allí.&quot;</span><span class="p">)</span>
+</span><span id="verificar_y_copiar_archivo_original-86"><a href="#verificar_y_copiar_archivo_original-86"><span class="linenos"> 86</span></a>
+</span><span id="verificar_y_copiar_archivo_original-87"><a href="#verificar_y_copiar_archivo_original-87"><span class="linenos"> 87</span></a>        <span class="c1"># Oculta la ventana principal de tkinter</span>
+</span><span id="verificar_y_copiar_archivo_original-88"><a href="#verificar_y_copiar_archivo_original-88"><span class="linenos"> 88</span></a>        <span class="n">root</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
+</span><span id="verificar_y_copiar_archivo_original-89"><a href="#verificar_y_copiar_archivo_original-89"><span class="linenos"> 89</span></a>        <span class="n">root</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
+</span><span id="verificar_y_copiar_archivo_original-90"><a href="#verificar_y_copiar_archivo_original-90"><span class="linenos"> 90</span></a>
+</span><span id="verificar_y_copiar_archivo_original-91"><a href="#verificar_y_copiar_archivo_original-91"><span class="linenos"> 91</span></a>        <span class="c1"># Abre el diálogo para seleccionar archivo</span>
+</span><span id="verificar_y_copiar_archivo_original-92"><a href="#verificar_y_copiar_archivo_original-92"><span class="linenos"> 92</span></a>        <span class="n">archivo_origen</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilename</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Selecciona un archivo para copiar a &#39;original&#39;&quot;</span><span class="p">)</span>
+</span><span id="verificar_y_copiar_archivo_original-93"><a href="#verificar_y_copiar_archivo_original-93"><span class="linenos"> 93</span></a>
+</span><span id="verificar_y_copiar_archivo_original-94"><a href="#verificar_y_copiar_archivo_original-94"><span class="linenos"> 94</span></a>        <span class="k">if</span> <span class="n">archivo_origen</span><span class="p">:</span>
+</span><span id="verificar_y_copiar_archivo_original-95"><a href="#verificar_y_copiar_archivo_original-95"><span class="linenos"> 95</span></a>            <span class="c1"># Copia el archivo a la carpeta &#39;original&#39;</span>
+</span><span id="verificar_y_copiar_archivo_original-96"><a href="#verificar_y_copiar_archivo_original-96"><span class="linenos"> 96</span></a>            <span class="n">archivo_destino</span> <span class="o">=</span> <span class="n">CARPETA_ORIGINAL</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+</span><span id="verificar_y_copiar_archivo_original-97"><a href="#verificar_y_copiar_archivo_original-97"><span class="linenos"> 97</span></a>            <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">archivo_origen</span><span class="p">,</span> <span class="n">archivo_destino</span><span class="p">)</span>
+</span><span id="verificar_y_copiar_archivo_original-98"><a href="#verificar_y_copiar_archivo_original-98"><span class="linenos"> 98</span></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Archivo copiado a: </span><span class="si">{</span><span class="n">archivo_destino</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="verificar_y_copiar_archivo_original-99"><a href="#verificar_y_copiar_archivo_original-99"><span class="linenos"> 99</span></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="verificar_y_copiar_archivo_original-100"><a href="#verificar_y_copiar_archivo_original-100"><span class="linenos">100</span></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No se seleccionó ningún archivo.&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -535,22 +588,22 @@ mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú 
 
     </div>
     <a class="headerlink" href="#leer_archivo_original"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="leer_archivo_original-95"><a href="#leer_archivo_original-95"><span class="linenos"> 95</span></a><span class="k">def</span><span class="w"> </span><span class="nf">leer_archivo_original</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span id="leer_archivo_original-96"><a href="#leer_archivo_original-96"><span class="linenos"> 96</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="leer_archivo_original-97"><a href="#leer_archivo_original-97"><span class="linenos"> 97</span></a><span class="sd">    Lee el único archivo de entrada de la carpeta &#39;original&#39; y lo carga en un DataFrame.</span>
-</span><span id="leer_archivo_original-98"><a href="#leer_archivo_original-98"><span class="linenos"> 98</span></a>
-</span><span id="leer_archivo_original-99"><a href="#leer_archivo_original-99"><span class="linenos"> 99</span></a><span class="sd">    Termina el programa con un mensaje si no hay ningún archivo de entrada o hay más de uno.</span>
-</span><span id="leer_archivo_original-100"><a href="#leer_archivo_original-100"><span class="linenos">100</span></a>
-</span><span id="leer_archivo_original-101"><a href="#leer_archivo_original-101"><span class="linenos">101</span></a><span class="sd">    Returns:</span>
-</span><span id="leer_archivo_original-102"><a href="#leer_archivo_original-102"><span class="linenos">102</span></a><span class="sd">        pd.DataFrame: Datos cargados desde el archivo Excel.</span>
-</span><span id="leer_archivo_original-103"><a href="#leer_archivo_original-103"><span class="linenos">103</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="leer_archivo_original-104"><a href="#leer_archivo_original-104"><span class="linenos">104</span></a>    <span class="n">archivos</span> <span class="o">=</span> <span class="n">archivos_de_entrada</span><span class="p">()</span>
-</span><span id="leer_archivo_original-105"><a href="#leer_archivo_original-105"><span class="linenos">105</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">archivos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-</span><span id="leer_archivo_original-106"><a href="#leer_archivo_original-106"><span class="linenos">106</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: Hay más de un archivo en la carpeta &#39;original&#39;. Asegúrate de que solo haya uno.&quot;</span><span class="p">)</span>
-</span><span id="leer_archivo_original-107"><a href="#leer_archivo_original-107"><span class="linenos">107</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos</span><span class="p">:</span>
-</span><span id="leer_archivo_original-108"><a href="#leer_archivo_original-108"><span class="linenos">108</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: No hay ningún archivo en la carpeta &#39;original&#39;. &quot;</span>
-</span><span id="leer_archivo_original-109"><a href="#leer_archivo_original-109"><span class="linenos">109</span></a>                 <span class="s2">&quot;Coloca allí el archivo de Excel con las direcciones.&quot;</span><span class="p">)</span>
-</span><span id="leer_archivo_original-110"><a href="#leer_archivo_original-110"><span class="linenos">110</span></a>    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">archivos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="leer_archivo_original-103"><a href="#leer_archivo_original-103"><span class="linenos">103</span></a><span class="k">def</span><span class="w"> </span><span class="nf">leer_archivo_original</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="leer_archivo_original-104"><a href="#leer_archivo_original-104"><span class="linenos">104</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="leer_archivo_original-105"><a href="#leer_archivo_original-105"><span class="linenos">105</span></a><span class="sd">    Lee el único archivo de entrada de la carpeta &#39;original&#39; y lo carga en un DataFrame.</span>
+</span><span id="leer_archivo_original-106"><a href="#leer_archivo_original-106"><span class="linenos">106</span></a>
+</span><span id="leer_archivo_original-107"><a href="#leer_archivo_original-107"><span class="linenos">107</span></a><span class="sd">    Termina el programa con un mensaje si no hay ningún archivo de entrada o hay más de uno.</span>
+</span><span id="leer_archivo_original-108"><a href="#leer_archivo_original-108"><span class="linenos">108</span></a>
+</span><span id="leer_archivo_original-109"><a href="#leer_archivo_original-109"><span class="linenos">109</span></a><span class="sd">    Returns:</span>
+</span><span id="leer_archivo_original-110"><a href="#leer_archivo_original-110"><span class="linenos">110</span></a><span class="sd">        pd.DataFrame: Datos cargados desde el archivo Excel.</span>
+</span><span id="leer_archivo_original-111"><a href="#leer_archivo_original-111"><span class="linenos">111</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="leer_archivo_original-112"><a href="#leer_archivo_original-112"><span class="linenos">112</span></a>    <span class="n">archivos</span> <span class="o">=</span> <span class="n">archivos_de_entrada</span><span class="p">()</span>
+</span><span id="leer_archivo_original-113"><a href="#leer_archivo_original-113"><span class="linenos">113</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">archivos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="leer_archivo_original-114"><a href="#leer_archivo_original-114"><span class="linenos">114</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: Hay más de un archivo en la carpeta &#39;original&#39;. Asegúrate de que solo haya uno.&quot;</span><span class="p">)</span>
+</span><span id="leer_archivo_original-115"><a href="#leer_archivo_original-115"><span class="linenos">115</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">archivos</span><span class="p">:</span>
+</span><span id="leer_archivo_original-116"><a href="#leer_archivo_original-116"><span class="linenos">116</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Error: No hay ningún archivo en la carpeta &#39;original&#39;. &quot;</span>
+</span><span id="leer_archivo_original-117"><a href="#leer_archivo_original-117"><span class="linenos">117</span></a>                 <span class="s2">&quot;Coloca allí el archivo de Excel con las direcciones.&quot;</span><span class="p">)</span>
+</span><span id="leer_archivo_original-118"><a href="#leer_archivo_original-118"><span class="linenos">118</span></a>    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">archivos</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </span></pre></div>
 
 
@@ -575,13 +628,13 @@ mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú 
 
     </div>
     <a class="headerlink" href="#verificar_columnas"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_columnas-113"><a href="#verificar_columnas-113"><span class="linenos">113</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_columnas</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columnas</span><span class="p">:</span> <span class="n">Columnas</span><span class="p">):</span>
-</span><span id="verificar_columnas-114"><a href="#verificar_columnas-114"><span class="linenos">114</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Termina el programa si el archivo de entrada no tiene alguna de las columnas configuradas.&quot;&quot;&quot;</span>
-</span><span id="verificar_columnas-115"><a href="#verificar_columnas-115"><span class="linenos">115</span></a>    <span class="n">faltantes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nombre</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="p">(</span><span class="n">columnas</span><span class="o">.</span><span class="n">ciudad</span><span class="p">,</span> <span class="n">columnas</span><span class="o">.</span><span class="n">direccion</span><span class="p">)</span> <span class="k">if</span> <span class="n">nombre</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-</span><span id="verificar_columnas-116"><a href="#verificar_columnas-116"><span class="linenos">116</span></a>    <span class="k">if</span> <span class="n">faltantes</span><span class="p">:</span>
-</span><span id="verificar_columnas-117"><a href="#verificar_columnas-117"><span class="linenos">117</span></a>        <span class="n">nombres</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">nombre</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="n">faltantes</span><span class="p">)</span>
-</span><span id="verificar_columnas-118"><a href="#verificar_columnas-118"><span class="linenos">118</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: El archivo de entrada no tiene la columna </span><span class="si">{</span><span class="n">nombres</span><span class="si">}</span><span class="s2">. &quot;</span>
-</span><span id="verificar_columnas-119"><a href="#verificar_columnas-119"><span class="linenos">119</span></a>                 <span class="s2">&quot;Revisa la sección [columnas] de la configuración.&quot;</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_columnas-121"><a href="#verificar_columnas-121"><span class="linenos">121</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_columnas</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columnas</span><span class="p">:</span> <span class="n">Columnas</span><span class="p">):</span>
+</span><span id="verificar_columnas-122"><a href="#verificar_columnas-122"><span class="linenos">122</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Termina el programa si el archivo de entrada no tiene alguna de las columnas configuradas.&quot;&quot;&quot;</span>
+</span><span id="verificar_columnas-123"><a href="#verificar_columnas-123"><span class="linenos">123</span></a>    <span class="n">faltantes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nombre</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="p">(</span><span class="n">columnas</span><span class="o">.</span><span class="n">ciudad</span><span class="p">,</span> <span class="n">columnas</span><span class="o">.</span><span class="n">direccion</span><span class="p">)</span> <span class="k">if</span> <span class="n">nombre</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+</span><span id="verificar_columnas-124"><a href="#verificar_columnas-124"><span class="linenos">124</span></a>    <span class="k">if</span> <span class="n">faltantes</span><span class="p">:</span>
+</span><span id="verificar_columnas-125"><a href="#verificar_columnas-125"><span class="linenos">125</span></a>        <span class="n">nombres</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">nombre</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="n">faltantes</span><span class="p">)</span>
+</span><span id="verificar_columnas-126"><a href="#verificar_columnas-126"><span class="linenos">126</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: El archivo de entrada no tiene la columna </span><span class="si">{</span><span class="n">nombres</span><span class="si">}</span><span class="s2">. &quot;</span>
+</span><span id="verificar_columnas-127"><a href="#verificar_columnas-127"><span class="linenos">127</span></a>                 <span class="s2">&quot;Revisa la sección [columnas] de la configuración.&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -601,14 +654,14 @@ mediante un diálogo gráfico para copiarlo a esa carpeta. Solo lo usa el menú 
 
     </div>
     <a class="headerlink" href="#verificar_principales_am"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_principales_am-122"><a href="#verificar_principales_am-122"><span class="linenos">122</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_principales_am</span><span class="p">():</span>
-</span><span id="verificar_principales_am-123"><a href="#verificar_principales_am-123"><span class="linenos">123</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="verificar_principales_am-124"><a href="#verificar_principales_am-124"><span class="linenos">124</span></a><span class="sd">    Termina el programa con un mensaje si no existe el archivo de direcciones principales estandarizadas,</span>
-</span><span id="verificar_principales_am-125"><a href="#verificar_principales_am-125"><span class="linenos">125</span></a><span class="sd">    necesario para la conversión de coordenadas cuando aún no hay archivo de coordenadas.</span>
-</span><span id="verificar_principales_am-126"><a href="#verificar_principales_am-126"><span class="linenos">126</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="verificar_principales_am-127"><a href="#verificar_principales_am-127"><span class="linenos">127</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span id="verificar_principales_am-128"><a href="#verificar_principales_am-128"><span class="linenos">128</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: No se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
-</span><span id="verificar_principales_am-129"><a href="#verificar_principales_am-129"><span class="linenos">129</span></a>                 <span class="s2">&quot;Ejecuta primero la estandarización de direcciones (opción 1).&quot;</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_principales_am-130"><a href="#verificar_principales_am-130"><span class="linenos">130</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_principales_am</span><span class="p">():</span>
+</span><span id="verificar_principales_am-131"><a href="#verificar_principales_am-131"><span class="linenos">131</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="verificar_principales_am-132"><a href="#verificar_principales_am-132"><span class="linenos">132</span></a><span class="sd">    Termina el programa con un mensaje si no existe el archivo de direcciones principales estandarizadas,</span>
+</span><span id="verificar_principales_am-133"><a href="#verificar_principales_am-133"><span class="linenos">133</span></a><span class="sd">    necesario para la conversión de coordenadas cuando aún no hay archivo de coordenadas.</span>
+</span><span id="verificar_principales_am-134"><a href="#verificar_principales_am-134"><span class="linenos">134</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="verificar_principales_am-135"><a href="#verificar_principales_am-135"><span class="linenos">135</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span id="verificar_principales_am-136"><a href="#verificar_principales_am-136"><span class="linenos">136</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: No se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_PRINCIPALES_AM</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+</span><span id="verificar_principales_am-137"><a href="#verificar_principales_am-137"><span class="linenos">137</span></a>                 <span class="s2">&quot;Ejecuta primero la estandarización de direcciones (opción 1).&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -629,18 +682,18 @@ necesario para la conversión de coordenadas cuando aún no hay archivo de coord
 
     </div>
     <a class="headerlink" href="#verificar_nombre_antiguo_coordenadas"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_nombre_antiguo_coordenadas-132"><a href="#verificar_nombre_antiguo_coordenadas-132"><span class="linenos">132</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_nombre_antiguo_coordenadas</span><span class="p">():</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-133"><a href="#verificar_nombre_antiguo_coordenadas-133"><span class="linenos">133</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-134"><a href="#verificar_nombre_antiguo_coordenadas-134"><span class="linenos">134</span></a><span class="sd">    Termina el programa si solo existe el archivo de coordenadas con el nombre anterior.</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-135"><a href="#verificar_nombre_antiguo_coordenadas-135"><span class="linenos">135</span></a>
-</span><span id="verificar_nombre_antiguo_coordenadas-136"><a href="#verificar_nombre_antiguo_coordenadas-136"><span class="linenos">136</span></a><span class="sd">    Sin esta comprobación, la conversión no encontraría el archivo nuevo y volvería a</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-137"><a href="#verificar_nombre_antiguo_coordenadas-137"><span class="linenos">137</span></a><span class="sd">    geocodificar todo desde el principio, gastando cuota de la API.</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-138"><a href="#verificar_nombre_antiguo_coordenadas-138"><span class="linenos">138</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-139"><a href="#verificar_nombre_antiguo_coordenadas-139"><span class="linenos">139</span></a>    <span class="n">nueva</span> <span class="o">=</span> <span class="n">ruta_coordenadas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-140"><a href="#verificar_nombre_antiguo_coordenadas-140"><span class="linenos">140</span></a>    <span class="k">if</span> <span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">nueva</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-141"><a href="#verificar_nombre_antiguo_coordenadas-141"><span class="linenos">141</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;, el nombre anterior del archivo &quot;</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-142"><a href="#verificar_nombre_antiguo_coordenadas-142"><span class="linenos">142</span></a>                 <span class="sa">f</span><span class="s2">&quot;de coordenadas. Renómbralo a &#39;</span><span class="si">{</span><span class="n">nueva</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; y vuelve a ejecutar &quot;</span>
-</span><span id="verificar_nombre_antiguo_coordenadas-143"><a href="#verificar_nombre_antiguo_coordenadas-143"><span class="linenos">143</span></a>                 <span class="s2">&quot;(no hace falta volver a geocodificar).&quot;</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="verificar_nombre_antiguo_coordenadas-140"><a href="#verificar_nombre_antiguo_coordenadas-140"><span class="linenos">140</span></a><span class="k">def</span><span class="w"> </span><span class="nf">verificar_nombre_antiguo_coordenadas</span><span class="p">():</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-141"><a href="#verificar_nombre_antiguo_coordenadas-141"><span class="linenos">141</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-142"><a href="#verificar_nombre_antiguo_coordenadas-142"><span class="linenos">142</span></a><span class="sd">    Termina el programa si solo existe el archivo de coordenadas con el nombre anterior.</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-143"><a href="#verificar_nombre_antiguo_coordenadas-143"><span class="linenos">143</span></a>
+</span><span id="verificar_nombre_antiguo_coordenadas-144"><a href="#verificar_nombre_antiguo_coordenadas-144"><span class="linenos">144</span></a><span class="sd">    Sin esta comprobación, la conversión no encontraría el archivo nuevo y volvería a</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-145"><a href="#verificar_nombre_antiguo_coordenadas-145"><span class="linenos">145</span></a><span class="sd">    geocodificar todo desde el principio, gastando cuota de la API.</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-146"><a href="#verificar_nombre_antiguo_coordenadas-146"><span class="linenos">146</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-147"><a href="#verificar_nombre_antiguo_coordenadas-147"><span class="linenos">147</span></a>    <span class="n">nueva</span> <span class="o">=</span> <span class="n">ruta_coordenadas</span><span class="p">(</span><span class="n">AREA_METROPOLITANA</span><span class="p">)</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-148"><a href="#verificar_nombre_antiguo_coordenadas-148"><span class="linenos">148</span></a>    <span class="k">if</span> <span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">nueva</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-149"><a href="#verificar_nombre_antiguo_coordenadas-149"><span class="linenos">149</span></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Se encontró &#39;</span><span class="si">{</span><span class="n">RUTA_COORDENADAS_ANTIGUA</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;, el nombre anterior del archivo &quot;</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-150"><a href="#verificar_nombre_antiguo_coordenadas-150"><span class="linenos">150</span></a>                 <span class="sa">f</span><span class="s2">&quot;de coordenadas. Renómbralo a &#39;</span><span class="si">{</span><span class="n">nueva</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; y vuelve a ejecutar &quot;</span>
+</span><span id="verificar_nombre_antiguo_coordenadas-151"><a href="#verificar_nombre_antiguo_coordenadas-151"><span class="linenos">151</span></a>                 <span class="s2">&quot;(no hace falta volver a geocodificar).&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 

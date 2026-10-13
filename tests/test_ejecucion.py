@@ -25,16 +25,17 @@ def ejecutar(forma, argumentos, cwd, entrada=None):
 def test_ayuda(forma):
     resultado = ejecutar(forma, ["--help"], cwd=RAIZ_REPO)
     assert resultado.returncode == 0
-    for subcomando in ("estandarizar", "geocodificar", "mejorar", "mapas", "subconjunto"):
+    for subcomando in ("estandarizar", "ubicar", "mapas", "subconjunto", "consultar-municipios",
+                       "comparar-consultas"):
         assert subcomando in resultado.stdout
 
 
 @pytest.mark.parametrize("forma", FORMAS)
 def test_menu_sin_argumentos(forma, tmp_path):
-    # Sin archivo de coordenadas, la opcion 4 termina con un mensaje (sin tocar la API ni original/).
+    # Sin archivo de coordenadas, la opcion 3 (mapas) termina con un mensaje (sin tocar la API ni original/).
     (tmp_path / "config").mkdir()
     shutil.copy(RAIZ_REPO / "config" / "georef.toml", tmp_path / "config" / "georef.toml")
-    resultado = ejecutar(forma, [], cwd=tmp_path, entrada="4\n")
-    assert "5. Extracción de un subconjunto" in resultado.stdout
+    resultado = ejecutar(forma, [], cwd=tmp_path, entrada="3\n")
+    assert "4. Extracción de un subconjunto" in resultado.stdout
     assert resultado.returncode == 1
     assert "Necesitas primero procesar las coordenadas" in resultado.stderr

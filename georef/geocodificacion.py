@@ -1,145 +1,243 @@
 """Consultas al proveedor de geocodificación (OpenCage) y lectura de su llave.
 
-La lógica y los parámetros son los heredados de `main.py` (`n=300`, `n=400`, plantilla de
-consulta y pausa de 1 s); el cambio `ubicacion-por-niveles` los rediseña.
+Contiene el texto de las consultas (formatos `abreviado` y `expandido`, lugar del complemento
+y municipio) y `SesionConsultas`, que hace las peticiones con pausa, caché, registro de
+diagnóstico y paradas limpias. Usa la librería `opencage` con `raw_response=True`.
 """
+import csv
+import datetime
 import os
 import sys
 import time
-import unicodedata
+from dataclasses import dataclass
+from pathlib import Path
 
-import pandas as pd
+import requests
 from dotenv import dotenv_values
-from opencage.geocoder import OpenCageGeocode
+from opencage.geocoder import (ForbiddenError, InvalidInputError, NotAuthorizedError, OpenCageGeocode,
+                               RateLimitExceededError, UnknownError)
 
-from georef.config import Columnas
 
-# Punto que devuelve OpenCage cuando solo resuelve la consulta a nivel de la ciudad de Medellín.
-CENTROIDE_MEDELLIN = (6.25184, -75.56359)
+def ciudad_consulta(ciudad: str) -> str:
+    """Municipio y departamento de la columna de ciudad para una consulta: 'MEDELLIN - ANTIOQUIA' -> 'MEDELLIN, ANTIOQUIA'."""
+    return ", ".join(parte.strip() for parte in str(ciudad).split(" - "))
 
-# Lista heredada de barrios de Medellín que usa la mejora de coordenadas. Es incompleta y no
-# coincide con los nombres oficiales; la sustituye el GeoJSON en ubicacion-por-niveles.
-BARRIOS_MEDELLIN = [
-    "ALDEA PABLO VI",
-    "ALEJANDRIA",
-    "ALEJANDRO ECHEVARRIA",
-    "ALFONSO LOPEZ",
-    "ALTAMIRA",
-    "ALTAVISTA",
-    "POBLADO",
-    "ANDALUCIA",
-    "ANTONIO NARINO",
-    "ARANJUEZ",
-    "ASOMADERA N1",
-    "ASOMADERA N2",
-    "ASOMADERA N3",
-    "ASTORGA",
-    "AURES N1",
-    "AURES N2",
-    "BARRIO CAICEDO",
-    "BARRIO COLOMBIA",
-    "BARRIO CRISTOBAL",
-    "BARRIOS DE JESUS",
-    "BELEN",
-    "BELLO HORIZONTE",
-    "BICENTENARIO",
-    "BOSTON",
-    "BOSQUES DE SAN PABLO",
-    "BOMBONA N1",
-    "BOMBONA N2",
-    "BRASILIA",
-    "BOSQUE",
-    "BOLIVARIANA",
-    "CALASANZ",
-    "CALLE NUEVA",
-    "CAMPO ALEGRE",
-    "CAMPO AMOR",
-    "CAMPO VALDES",
-    "CANTV",
-    "CANTAR",
-    "CASTILLA",
-    "CASTROPOL",
-    "CATALUÑA",
-    "CASTILLA",
-    "CAICEDO",
-    "CATEDRAL",
-    "CARIBE",
-    "CARLOS E. RESTREPO",
-    "CARLOS E RESTREPO",
-    "CENTRAL GARC",
-    "CERRO EL VOLADOR",
-    "CERRO NUTIBARA",
-    "CHARCO MORALES",
-    "CIELO",
-    "COLON",
-    "COLONIA LIBRE",
-    "COLONIAL",
-    "COMUNA 1",
-    "COMUNA 13",
-    "COMUNA 4",
-    "COMUNA 7",
-    "CONDINA",
-    "CONQUISTADORES",
-    "CORAZON DE JESUS",
-    "CORAZON DE JESUS – BARRIO TRISTE",
-    "CÓRDOBA",
-    "CORTEXTO",
-    "CRISTO REY",
-    "DARE",
-    "DIEGO ECHEVARRIA",
-    "DOS QUETAZALES",
-    "EDUCACION",
-    "ESPINAL",
-    "ESTACION VILLA",
-    "ESTANCIA DEL MAR",
-    "ESTADIO",
-    "EUFEMIA CRUZ",
-    "EXPOSICION",
-    "FONTIBON",
-    "FERRINI",
-    "FLORENCIA",
-    "FLORIDA",
-    "FLORIDA NUEVA",
-    "FLORIDA VILLA",
-    "FUSIBLES",
-    "GENERAL MOTOBIEN",
-    "GENERAL PERON",
-    "GIRARDOT",
-    "GRANADA",
-    "GRANIZAL",
-    "GRANIZAL",
-    "GUAYABAL",
-    "HABSAÑA",
-    "HATILLO",
-    "HORIZONTES",
-    "HUNTER",
-    "HUMBERTO",
-    "JARDINES",
-    "JUAN PABLO II",
-    "JOSE JIMENEZ",
-    "LA AVANZADA",
-    "LA BARCALERA",
-    "LA BATERIA",
-    "LA CABAÑA",
-    "LA CASCADA",
-    "LA COLINA",
-    "LA COMUNA 1",
-    "LA COMUNA 2",
-    "LA ESPERANZA",
-    "LA FLORIDA",
-    "LA FRONTERA",
-    "LA GLORIA",
-    "LA HONDONADA",
-    "LA ISLA",
-    "LOMA DE LOS BERNAL",
-    "LA LOMA DE LOS ORIENTALES",
-    "LA MERCED",
-    "LA MOTA",
-    "LA PALMA",
-    "LA PARRANDA",
-    "LA PILARICA",
-    "LA PLAYA"
-]
+
+def consulta_direccion(direccion: str, ciudad: str, formato: str, nombres_via) -> str:
+    """
+    Texto de la consulta de un registro: su vía y numeración, el municipio, el departamento y 'Colombia'.
+
+    Nunca incluye el complemento, el barrio ni la zona. El formato `abreviado` usa la dirección
+    tal como la deja la estandarización (`CL 10 #20-30`); el `expandido` escribe el nombre del
+    tipo de vía de `nombres_via` y separa `#` del número (`Calle 10 # 20-30`). La orientación
+    pegada al número (`45S`) no se expande, para no confundirla con la letra de la vía.
+    """
+    if formato == "expandido":
+        tipo, _, resto = direccion.partition(" ")
+        direccion = " ".join(p for p in (nombres_via.get(tipo, tipo), resto.replace("#", "# ")) if p)
+    return f"{direccion}, {ciudad_consulta(ciudad)}, Colombia"
+
+
+def consulta_lugar(complemento, lugar_declarado, ciudad: str, palabras_lugar) -> str | None:
+    """
+    Texto de la segunda consulta, con el lugar con nombre del complemento, o None si no lo hay.
+
+    El lugar va desde la primera palabra del complemento que está en `palabras_lugar` hasta el
+    final (`APTO 301 UNIDAD LOS PINOS` -> `UNIDAD LOS PINOS`). Le siguen el barrio o la comuna
+    declarados, en mayúsculas, si los hay, y la ciudad.
+    """
+    if not isinstance(complemento, str):
+        return None
+    palabras = complemento.split()
+    inicio = next((i for i, palabra in enumerate(palabras) if palabra.upper() in palabras_lugar), None)
+    if inicio is None:
+        return None
+    partes = [" ".join(palabras[inicio:])]
+    if isinstance(lugar_declarado, str) and lugar_declarado.strip():
+        partes.append(lugar_declarado.upper())
+    return ", ".join(partes + [ciudad_consulta(ciudad), "Colombia"])
+
+
+def consulta_municipio(municipio: str) -> str:
+    """Texto de la consulta del punto de un municipio: '<MUNICIPIO>, <DEPARTAMENTO>, Colombia'."""
+    return f"{ciudad_consulta(municipio)}, Colombia"
+
+
+# Estados de la respuesta a una consulta.
+RESULTADO = "RESULTADO"
+SIN_RESULTADO = "SIN_RESULTADO"
+PENDIENTE = "PENDIENTE"  # no se pudo consultar en esta ejecución (parada, error o sin cliente)
+
+# Motivos por los que una sesión deja de hacer peticiones.
+PARADA_CUOTA = "CUOTA_O_RITMO"
+PARADA_ERRORES = "ERRORES_SEGUIDOS"
+PARADA_LIMITE = "LIMITE_CONSULTAS"
+
+# Errores seguidos tras los que se deja de consultar: protege la cuota si el servicio falla.
+MAXIMO_ERRORES_SEGUIDOS = 3
+
+COLUMNAS_CACHE = ["consulta", "fecha", "estado", "latitud", "longitud", "confianza", "tipo", "texto"]
+COLUMNAS_REGISTRO = ["fecha_hora_utc", "operacion", "registro", "duracion_ms", "resultado", "restantes", "tipo",
+                     "confianza"]
+
+
+@dataclass(frozen=True)
+class Respuesta:
+    """Respuesta a una consulta: el primer resultado de OpenCage, sin resultado o pendiente."""
+
+    estado: str
+    latitud: float | None = None
+    longitud: float | None = None
+    confianza: int | None = None
+    tipo: str | None = None
+    texto: str | None = None
+
+
+RESPUESTA_PENDIENTE = Respuesta(PENDIENTE)
+
+
+class SesionConsultas:
+    """
+    Consultas a OpenCage de una ejecución, con pausa, caché, registro de diagnóstico y paradas.
+
+    - Antes de cada petición espera hasta que hayan pasado `pausa_segundos` desde el inicio de
+      la anterior, también si la anterior terminó en error.
+    - Cada respuesta correcta (con o sin resultados) se añade a la caché en cuanto llega, y una
+      consulta que ya está en la caché nunca se repite.
+    - Deja de hacer peticiones, sin perder lo obtenido, si OpenCage indica cuota o ritmo excedidos,
+      tras `MAXIMO_ERRORES_SEGUIDOS` errores seguidos o al llegar a `limite_consultas`. Desde ese
+      momento, lo que no está en la caché queda PENDIENTE.
+    - Sin llave (`llave=None`) no hace peticiones: solo usa la caché.
+    - Sin `ruta_cache` (None), las respuestas solo se recuerdan durante la sesión.
+    - Si OpenCage rechaza la llave, termina el programa sin mostrarla.
+    """
+
+    def __init__(self, llave, parametros, ruta_cache, ruta_registro, operacion):
+        self._cliente = OpenCageGeocode(llave) if llave else None
+        self._pausa = parametros.pausa_segundos
+        self._limite = parametros.limite_consultas
+        self._ruta_cache = Path(ruta_cache) if ruta_cache is not None else None
+        self._ruta_registro = Path(ruta_registro)
+        self._operacion = operacion
+        self._cache = _leer_cache(self._ruta_cache) if self._ruta_cache is not None else {}
+        self._inicio_anterior = None
+        self._errores_seguidos = 0
+        self.peticiones = 0
+        self.desde_cache = 0
+        self.pendientes = set()  # consultas distintas que quedaron sin respuesta
+        self.parada = None
+        self.restantes = None  # últimas peticiones restantes que informó OpenCage
+
+    def resolver(self, consulta, bounds=None, registro="") -> Respuesta:
+        """Devuelve la respuesta a `consulta`, de la caché o con una petición. `registro` va al registro."""
+        if consulta in self._cache:
+            self.desde_cache += 1
+            return self._cache[consulta]
+        if self._cliente is None or self.parada:
+            self.pendientes.add(consulta)
+            return RESPUESTA_PENDIENTE
+        if self.peticiones >= self._limite:
+            self.parada = PARADA_LIMITE
+            self.pendientes.add(consulta)
+            return RESPUESTA_PENDIENTE
+
+        parametros = {"countrycode": "co", "limit": 1, "no_annotations": 1}
+        if bounds:
+            parametros["bounds"] = bounds
+        self._esperar()
+        self._inicio_anterior = time.monotonic()
+        self.peticiones += 1
+        try:
+            datos = self._cliente.geocode(consulta, raw_response=True, **parametros)
+        except RateLimitExceededError:
+            self._registrar(registro, "RateLimitExceededError")
+            self.parada = PARADA_CUOTA
+            self.pendientes.add(consulta)
+            return RESPUESTA_PENDIENTE
+        except (NotAuthorizedError, ForbiddenError) as error:
+            self._registrar(registro, type(error).__name__)
+            sys.exit("Error: OpenCage rechazó la llave de 'OPENCAGE_API_KEY' (no autorizada o bloqueada). "
+                     "Revisa la llave en tu archivo '.env' o en el entorno. No se escribió el archivo de coordenadas.")
+        except (UnknownError, InvalidInputError, requests.RequestException) as error:
+            self._registrar(registro, type(error).__name__)
+            self._errores_seguidos += 1
+            if self._errores_seguidos >= MAXIMO_ERRORES_SEGUIDOS:
+                self.parada = PARADA_ERRORES
+            self.pendientes.add(consulta)
+            return RESPUESTA_PENDIENTE
+
+        self._errores_seguidos = 0
+        self.restantes = (datos.get("rate") or {}).get("remaining", self.restantes)
+        respuesta = _primera_respuesta(datos.get("results") or [])
+        self._registrar(registro, respuesta.estado, respuesta, (datos.get("rate") or {}).get("remaining"))
+        self._guardar_en_cache(consulta, respuesta)
+        return respuesta
+
+    def _esperar(self):
+        if self._inicio_anterior is not None:
+            espera = self._pausa - (time.monotonic() - self._inicio_anterior)
+            if espera > 0:
+                time.sleep(espera)
+
+    def _guardar_en_cache(self, consulta, respuesta):
+        self._cache[consulta] = respuesta
+        if self._ruta_cache is None:
+            return
+        fila = {"consulta": consulta, "fecha": datetime.date.today().isoformat(), "estado": respuesta.estado,
+                "latitud": respuesta.latitud, "longitud": respuesta.longitud, "confianza": respuesta.confianza,
+                "tipo": respuesta.tipo, "texto": respuesta.texto}
+        _anadir_fila(self._ruta_cache, COLUMNAS_CACHE, fila)
+
+    def _registrar(self, registro, resultado, respuesta=None, restantes=None):
+        duracion = round((time.monotonic() - self._inicio_anterior) * 1000)
+        fila = {"fecha_hora_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+                "operacion": self._operacion, "registro": registro, "duracion_ms": duracion,
+                "resultado": resultado, "restantes": restantes,
+                "tipo": respuesta.tipo if respuesta else None,
+                "confianza": respuesta.confianza if respuesta else None}
+        _anadir_fila(self._ruta_registro, COLUMNAS_REGISTRO, fila)
+
+
+def _primera_respuesta(resultados) -> Respuesta:
+    if not resultados:
+        return Respuesta(SIN_RESULTADO)
+    primero = resultados[0]
+    return Respuesta(
+        RESULTADO,
+        latitud=float(primero["geometry"]["lat"]),
+        longitud=float(primero["geometry"]["lng"]),
+        confianza=primero.get("confidence"),
+        tipo=(primero.get("components") or {}).get("_type"),
+        texto=primero.get("formatted"),
+    )
+
+
+def _leer_cache(ruta: Path) -> dict:
+    """Carga la caché CSV en un diccionario consulta -> Respuesta (vacío si el archivo no existe)."""
+    if not ruta.exists():
+        return {}
+    cache = {}
+    with open(ruta, encoding="utf-8", newline="") as archivo:
+        for fila in csv.DictReader(archivo):
+            def valor(columna, tipo):
+                texto = fila.get(columna) or ""
+                return tipo(texto) if texto else None
+            cache[fila["consulta"]] = Respuesta(
+                fila["estado"], valor("latitud", float), valor("longitud", float),
+                valor("confianza", lambda t: int(float(t))), fila.get("tipo") or None, fila.get("texto") or None,
+            )
+    return cache
+
+
+def _anadir_fila(ruta: Path, columnas, fila):
+    """Añade `fila` al CSV de `ruta` (con encabezado si es nuevo) y lo cierra, para no perderla si el proceso cae."""
+    nuevo = not ruta.exists() or ruta.stat().st_size == 0
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    with open(ruta, "a", encoding="utf-8", newline="") as archivo:
+        escritor = csv.DictWriter(archivo, fieldnames=columnas)
+        if nuevo:
+            escritor.writeheader()
+        escritor.writerow({c: "" if fila.get(c) is None else fila[c] for c in columnas})
 
 
 def obtener_llave():
@@ -165,139 +263,3 @@ def obtener_llave():
             "  export OPENCAGE_API_KEY=<tu-llave>"
         )
     return llave
-
-
-def geocodificar_direcciones(df: pd.DataFrame, api_key: str, columnas: Columnas, n = 300) -> pd.DataFrame:
-    """
-    Realiza geocodificación directa (dirección -> coordenadas) sobre un número exacto de registros (n), partiendo desde:
-    - El primer registro si no existen columnas 'Latitud' y 'Longitud'.
-    - El primer registro donde 'Latitud' o 'Longitud' están vacíos, si ya existen.
-
-    Se realiza una consulta por segundo (como exige la API de OpenCage).
-    `columnas` indica los nombres de las columnas de dirección y ciudad.
-    """
-    geocoder = OpenCageGeocode(api_key)
-
-    # Crear columnas si no existen
-    if 'Latitud' not in df.columns:
-        df['Latitud'] = None
-    if 'Longitud' not in df.columns:
-        df['Longitud'] = None
-
-    # Encontrar primer índice donde falta alguna coordenada
-    start_idx = None
-    for idx in df.index:
-        if pd.isna(df.at[idx, 'Latitud']) or pd.isna(df.at[idx, 'Longitud']):
-            start_idx = idx
-            break
-
-    if start_idx is None:
-        print("Todas las coordenadas ya están completas. No se necesita geocodificación.")
-        return df
-
-    # Geocodificar exactamente n registros desde start_idx
-    processed = 0
-    for idx in df.loc[start_idx:].index:
-        if processed >= n:
-            break
-
-        direccion = f"{df.at[idx, columnas.direccion]}, {df.at[idx, columnas.ciudad].replace(' -',',')}, Antioquia, Colombia"
-
-        try:
-            resultados = geocoder.geocode(direccion, no_annotations=1, countrycode='co')
-        except Exception as e:
-            print(f"‼ Error al consultar idx={idx}: {e}")
-            continue
-
-        if resultados and len(resultados):
-            df.at[idx, 'Longitud'] = resultados[0]['geometry']['lng']
-            df.at[idx, 'Latitud']  = resultados[0]['geometry']['lat']
-        else:
-            df.at[idx, 'Longitud'] = geocoder.geocode(df.at[idx, columnas.ciudad].replace(' -',',')
-                                                      , no_annotations=1, countrycode='co')[0]['geometry']['lng']
-            df.at[idx, 'Latitud']  = geocoder.geocode(df.at[idx, columnas.ciudad].replace(' -',',')
-                                                      , no_annotations=1, countrycode='co')[0]['geometry']['lat']
-
-        processed += 1
-        print(f"✓ Coordenadas asignadas en fila {idx}\nRegistros procesados: {processed}")
-        time.sleep(1)
-
-    # Reordenar columnas si existe 'Complemento'
-    cols = df.columns.tolist()
-    if 'Complemento' in cols:
-        idx_comp = cols.index('Complemento')
-        geo_cols = ['Latitud', 'Longitud']
-        for col in geo_cols:
-            if col in cols:
-                cols.remove(col)
-        cols = cols[:idx_comp+1] + geo_cols + cols[idx_comp+1:]
-        df = df[cols]
-
-    return df
-
-
-def rellenar_por_barrio(df: pd.DataFrame,
-                        api_key: str,
-                        n = 400) -> pd.DataFrame:
-    """
-    Para registros con lat=6.25184 y lon=-75.56359 y Complemento conteniendo
-    un barrio de BARRIOS_MEDELLIN, re-geocodifica usando Ciudad + Barrio.
-    No hace más de n llamadas al API.
-
-    Desde normalizacion-direcciones el barrio reconocido está en la columna 'Barrio' y no
-    dentro de 'Complemento', así que se busca en ambas.
-    """
-    geocoder = OpenCageGeocode(api_key)
-    llamadas = 0
-
-    latitud = df['Latitud'].copy()
-    longitud = df["Longitud"].copy()
-
-    # Preprocesar lista de barrios: sin tildes y en mayúsculas
-    def normaliza(texto: str) -> str:
-        # Quita tildes
-        s = unicodedata.normalize('NFD', texto)
-        s = ''.join(ch for ch in s if unicodedata.category(ch) != 'Mn')
-        return s.upper()
-
-
-    for idx, row in df.iterrows():
-        if llamadas >= n:
-            break
-
-        lat = row.get('Latitud', None)
-        lon = row.get('Longitud', None)
-        complemento = row.get('Complemento', '')
-        barrio = row.get('Barrio', None)
-        if lat == CENTROIDE_MEDELLIN[0] and lon == CENTROIDE_MEDELLIN[1]:
-            texto = str(complemento) if pd.isna(barrio) else f"{complemento} {barrio}"
-            comp_norm = normaliza(texto)
-            # ¿Algún barrio está contenido en el texto normalizado?
-            barrio_encontrado = next((b for b in BARRIOS_MEDELLIN if b in comp_norm), None)
-            if barrio_encontrado:
-                # Construir dirección: ciudad + barrio
-                direccion = f"{barrio_encontrado}, MEDELLIN"
-
-                try:
-                    resultados = geocoder.geocode(direccion, no_annotations=1, countrycode='co')
-                except Exception as e:
-                    print(f"‼ Error al geocodificar idx={idx}: {e}")
-                    continue
-
-                if resultados and len(resultados):
-                    longitud.loc[idx] = resultados[0]['geometry']['lng']
-                    latitud.loc[idx]  = resultados[0]['geometry']['lat']
-                    print(f"✓ Re-geocodificado idx={idx} → {barrio_encontrado}")
-                else:
-                    print(f"– Sin resultados para idx={idx}, barrio={barrio_encontrado}")
-
-                llamadas += 1
-                time.sleep(1)  # pausa mínima entre llamadas
-
-    df["Latitud"] = latitud
-    df["Longitud"] = longitud
-    if llamadas == 0:
-        print("Los registros han sido optimizados")
-    else:
-        print(f"🗸 Total de llamadas realizadas: {llamadas}")
-    return df

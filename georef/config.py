@@ -5,6 +5,7 @@ La configuración se valida entera antes de devolverla: si hay errores, se lanza
 se devuelven en dataclasses congeladas con tuplas, para que ninguna etapa pueda
 modificarlos.
 """
+import datetime
 import re
 import tomllib
 from dataclasses import dataclass
@@ -19,6 +20,14 @@ AREA_METROPOLITANA = "area_metropolitana"
 
 # El nombre de un subconjunto forma parte de nombres de archivo: solo ASCII sencillo.
 PATRON_NOMBRE_SUBCONJUNTO = re.compile(r"[a-z0-9_]+")
+
+# Formatos del texto de las consultas a OpenCage (ver georef.geocodificacion).
+FORMATOS_CONSULTA = ("abreviado", "expandido")
+
+CLAVES_UBICACION = {
+    "formato_consulta", "confianza_minima", "tipos_rechazados", "tolerancia_metros", "pausa_segundos",
+    "limite_consultas", "consulta_lugar_complemento", "palabras_lugar", "nombres_via",
+}
 
 
 class ErrorConfiguracion(Exception):
@@ -67,6 +76,31 @@ class Referencia:
 
 
 @dataclass(frozen=True)
+class ParametrosUbicacion:
+    """Parámetros de la ubicación por niveles y de las consultas a OpenCage (sección `[ubicacion]`)."""
+
+    formato_consulta: str
+    confianza_minima: int
+    tipos_rechazados: tuple[str, ...]
+    tolerancia_metros: float
+    pausa_segundos: float
+    limite_consultas: int
+    consulta_lugar_complemento: bool
+    palabras_lugar: tuple[str, ...]
+    nombres_via: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class PuntoMunicipio:
+    """Punto fijo de un municipio (nivel MUNICIPIO de la ubicación), con su procedencia."""
+
+    latitud: float
+    longitud: float
+    fuente: str
+    fecha: str
+
+
+@dataclass(frozen=True)
 class Configuracion:
     """Configuración validada del proyecto."""
 
@@ -75,6 +109,9 @@ class Configuracion:
     columnas: Columnas
     direcciones: VocabularioDirecciones
     referencia: Referencia
+    ubicacion: ParametrosUbicacion
+    # Vacío mientras no se ejecute `consultar-municipios` ni se escriban a mano.
+    puntos_municipios: Mapping[str, PuntoMunicipio]
     ruta: Path
 
 
@@ -105,8 +142,8 @@ def cargar_configuracion(ruta=RUTA_POR_DEFECTO) -> Configuracion:
 
 def _validar(datos, ruta, errores):
     """Comprueba la estructura de `datos` y devuelve la Configuracion; añade a `errores` cada problema."""
-    _claves_desconocidas(datos, "", {"area_metropolitana", "subconjuntos", "columnas", "direcciones", "referencia"},
-                         errores)
+    _claves_desconocidas(datos, "", {"area_metropolitana", "subconjuntos", "columnas", "direcciones", "referencia",
+                                     "ubicacion", "puntos_municipios"}, errores)
 
     area = _tabla(datos, "area_metropolitana", {"municipios"}, errores)
     municipios_am = _lista_textos(area, "municipios", "area_metropolitana", errores)
@@ -151,14 +188,142 @@ def _validar(datos, ruta, errores):
         errores.append(f"referencia.municipio_con_poligonos: '{referencia.municipio_con_poligonos}' "
                        "no pertenece al área metropolitana")
 
+    ubicacion = _ubicacion(_tabla(datos, "ubicacion", CLAVES_UBICACION, errores), tipos_via, errores)
+    puntos = _puntos_municipios(_tabla(datos, "puntos_municipios", None, errores, obligatoria=False),
+                                municipios_am, errores)
+
     return Configuracion(
         area_metropolitana=municipios_am,
         subconjuntos=MappingProxyType(subconjuntos),
         columnas=columnas,
         direcciones=VocabularioDirecciones(tipos_via, palabras_clave, equivalencias),
         referencia=referencia,
+        ubicacion=ubicacion,
+        puntos_municipios=puntos,
         ruta=ruta,
     )
+
+
+def _puntos_municipios(tabla, municipios_am, errores):
+    """Devuelve los puntos de `[puntos_municipios]` (municipio -> PuntoMunicipio); la sección es opcional."""
+    puntos = {}
+    for municipio, valor in (tabla or {}).items():
+        clave = f'puntos_municipios."{municipio}"'
+        if municipios_am and municipio not in municipios_am:
+            errores.append(f"{clave}: '{municipio}' no pertenece al área metropolitana")
+            continue
+        if not isinstance(valor, dict):
+            errores.append(f"{clave}: debe ser una tabla {{ latitud = ..., longitud = ..., fuente = \"...\", "
+                           "fecha = \"...\" }")
+            continue
+        _claves_desconocidas(valor, f"{clave}.", {"latitud", "longitud", "fuente", "fecha"}, errores)
+        latitud = _numero(valor, "latitud", clave, errores)
+        if latitud is not None and not -90 <= latitud <= 90:
+            errores.append(f"{clave}.latitud: debe estar entre -90 y 90")
+            latitud = None
+        longitud = _numero(valor, "longitud", clave, errores)
+        if longitud is not None and not -180 <= longitud <= 180:
+            errores.append(f"{clave}.longitud: debe estar entre -180 y 180")
+            longitud = None
+        fuente = _texto(valor, "fuente", clave, errores)
+        # La fecha puede escribirse como texto ("2026-10-12") o como fecha TOML (2026-10-12).
+        fecha = valor.get("fecha")
+        if isinstance(fecha, (datetime.date, datetime.datetime)):
+            fecha = fecha.isoformat()
+        elif "fecha" in valor:
+            fecha = _texto(valor, "fecha", clave, errores)
+        else:
+            errores.append(f"{clave}.fecha: falta esta clave")
+        if None not in (latitud, longitud) and fuente and fecha:
+            puntos[municipio] = PuntoMunicipio(float(latitud), float(longitud), fuente, fecha)
+    return MappingProxyType(puntos)
+
+
+def _ubicacion(tabla, tipos_via, errores):
+    """Devuelve los ParametrosUbicacion de la sección `[ubicacion]` (o None si falta), validando cada valor."""
+    if tabla is None:  # la sección ya se informó como ausente o inválida
+        return None
+    seccion = "ubicacion"
+
+    formato = _texto(tabla, "formato_consulta", seccion, errores)
+    if formato and formato not in FORMATOS_CONSULTA:
+        errores.append(f"ubicacion.formato_consulta: '{formato}' no es válido; usa "
+                       + " o ".join(f"'{f}'" for f in FORMATOS_CONSULTA))
+
+    confianza = _numero(tabla, "confianza_minima", seccion, errores, entero=True)
+    if confianza is not None and not 0 <= confianza <= 10:
+        errores.append("ubicacion.confianza_minima: debe ser un entero de 0 a 10")
+    tolerancia = _numero(tabla, "tolerancia_metros", seccion, errores)
+    if tolerancia is not None and tolerancia < 0:
+        errores.append("ubicacion.tolerancia_metros: no puede ser negativa")
+    pausa = _numero(tabla, "pausa_segundos", seccion, errores)
+    if pausa is not None and pausa < 0:
+        errores.append("ubicacion.pausa_segundos: no puede ser negativa")
+    limite = _numero(tabla, "limite_consultas", seccion, errores, entero=True)
+    if limite is not None and limite <= 0:
+        errores.append("ubicacion.limite_consultas: debe ser un entero positivo")
+
+    lugar_complemento = False
+    if "consulta_lugar_complemento" not in tabla:
+        errores.append("ubicacion.consulta_lugar_complemento: falta esta clave")
+    elif not isinstance(tabla["consulta_lugar_complemento"], bool):
+        errores.append("ubicacion.consulta_lugar_complemento: debe ser true o false")
+    else:
+        lugar_complemento = tabla["consulta_lugar_complemento"]
+
+    tipos_rechazados = _lista_textos(tabla, "tipos_rechazados", seccion, errores, admite_vacia=True)
+    palabras_lugar = _lista_textos(tabla, "palabras_lugar", seccion, errores, admite_vacia=True)
+    nombres_via = _nombres_via(tabla, tipos_via, errores)
+
+    return ParametrosUbicacion(
+        formato_consulta=formato,
+        confianza_minima=confianza,
+        tipos_rechazados=tipos_rechazados,
+        tolerancia_metros=tolerancia,
+        pausa_segundos=pausa,
+        limite_consultas=limite,
+        consulta_lugar_complemento=lugar_complemento,
+        palabras_lugar=palabras_lugar,
+        nombres_via=nombres_via,
+    )
+
+
+def _numero(tabla, clave, seccion, errores, entero=False):
+    """Devuelve `tabla[clave]` si es un número (entero si `entero`), o None tras informar del error."""
+    nombre = f"{seccion}.{clave}"
+    if clave not in tabla:
+        errores.append(f"{nombre}: falta esta clave")
+        return None
+    valor = tabla[clave]
+    tipos = (int,) if entero else (int, float)
+    if isinstance(valor, bool) or not isinstance(valor, tipos):
+        errores.append(f"{nombre}: debe ser un {'entero' if entero else 'número'}")
+        return None
+    return valor
+
+
+def _nombres_via(tabla, tipos_via, errores):
+    """Devuelve `nombres_via` (tipo de vía -> nombre completo) y comprueba que cubre todos los tipos de vía."""
+    nombre = "ubicacion.nombres_via"
+    if "nombres_via" not in tabla:
+        errores.append(f"{nombre}: falta esta clave")
+        return MappingProxyType({})
+    valor = tabla["nombres_via"]
+    if not isinstance(valor, dict):
+        errores.append(f"{nombre}: debe ser una tabla {{ CL = \"Calle\", ... }}")
+        return MappingProxyType({})
+    nombres = {}
+    for tipo, texto in valor.items():
+        if not isinstance(texto, str) or not texto.strip():
+            errores.append(f"{nombre}.{tipo}: debe ser un texto no vacío")
+        elif tipos_via and tipo not in tipos_via:  # sin tipos_via válidos, el error ya se informó
+            errores.append(f"{nombre}.{tipo}: no es un tipo de vía de direcciones.tipos_via")
+        else:
+            nombres[tipo] = texto
+    for tipo in tipos_via:
+        if tipo not in valor:
+            errores.append(f"{nombre}: falta el nombre del tipo de vía '{tipo}'")
+    return MappingProxyType(nombres)
 
 
 def _claves_desconocidas(tabla, prefijo, permitidas, errores):

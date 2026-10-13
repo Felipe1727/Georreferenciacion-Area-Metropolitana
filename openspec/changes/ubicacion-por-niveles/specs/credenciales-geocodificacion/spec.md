@@ -1,0 +1,56 @@
+# Spec Delta
+
+## MODIFIED Requirements
+
+### Requirement: Credencial leída del entorno o de un archivo `.env`
+El sistema SHALL obtener la API key del proveedor de geocodificación de la variable `OPENCAGE_API_KEY`, sin espacios al inicio ni al final, en todas las operaciones que consultan al proveedor: ubicación (menú, subcomando `ubicar` y modo `c`), `consultar-municipios` y `comparar-consultas`. La variable se busca primero en el entorno del proceso y, si ahí no está definida o está vacía, en el archivo `.env` del directorio de trabajo. Leer `.env` MUST NOT modificar el entorno del proceso.
+
+#### Scenario: Variable definida en el entorno
+- **WHEN** `OPENCAGE_API_KEY` contiene una llave en el entorno y el usuario ejecuta la ubicación
+- **THEN** el sistema usa esa llave para consultar al proveedor sin hacer ninguna pregunta por consola sobre la llave
+
+#### Scenario: Variable definida solo en `.env`
+- **WHEN** `OPENCAGE_API_KEY` no está en el entorno, el archivo `.env` del directorio de trabajo contiene `OPENCAGE_API_KEY=<llave>` y el usuario ejecuta la ubicación
+- **THEN** el sistema usa la llave de `.env` sin hacer preguntas por consola y el entorno del proceso no gana la variable `OPENCAGE_API_KEY`
+
+#### Scenario: El entorno tiene prioridad sobre `.env`
+- **WHEN** `OPENCAGE_API_KEY` está definida tanto en el entorno como en `.env` con valores distintos
+- **THEN** el sistema usa el valor del entorno
+
+#### Scenario: Valor con espacios alrededor
+- **WHEN** `OPENCAGE_API_KEY` contiene una llave con espacios o un salto de línea al final
+- **THEN** el sistema usa la llave sin esos espacios
+
+#### Scenario: Modo no interactivo
+- **WHEN** `OPENCAGE_API_KEY` está definida (en el entorno o en `.env`) y el usuario ejecuta `python main.py c` o `python -m georef ubicar`
+- **THEN** el sistema consulta con esa llave y no lee ningún archivo `llave/llave.txt`
+
+### Requirement: Fallo explícito cuando falta la credencial
+Si `OPENCAGE_API_KEY` no está definida o está vacía (incluido un valor formado solo por espacios) ni en el entorno ni en `.env`, el sistema MUST terminar con código distinto de cero antes de hacer cualquier consulta al proveedor. Debe mostrar un mensaje que nombre la variable y explique cómo definirla (incluido el archivo `.env`), y no debe modificar ningún archivo de salida.
+
+#### Scenario: Variable ausente
+- **WHEN** `OPENCAGE_API_KEY` no está definida en el entorno, no existe `.env` y el usuario elige la ubicación
+- **THEN** el sistema termina con código distinto de cero, muestra un mensaje que menciona `OPENCAGE_API_KEY` y `coordenadas/coordenadas_area_metropolitana.xlsx` queda sin cambios
+
+#### Scenario: Variable vacía
+- **WHEN** `OPENCAGE_API_KEY` contiene solo espacios en el entorno, `.env` no la define y el usuario ejecuta `comparar-consultas`
+- **THEN** el sistema se comporta igual que si la variable no estuviera definida
+
+#### Scenario: `.env` con la variable vacía
+- **WHEN** `OPENCAGE_API_KEY` no está en el entorno y `.env` contiene `OPENCAGE_API_KEY=` sin valor
+- **THEN** el sistema se comporta igual que si la variable no estuviera definida
+
+### Requirement: Operaciones sin proveedor no exigen la credencial
+Las operaciones que no consultan al proveedor (estandarización de direcciones, `ubicar --sin-consultas`, generación de mapas y extracción de subconjuntos) SHALL ejecutarse aunque `OPENCAGE_API_KEY` no esté definida.
+
+#### Scenario: Estandarización sin credencial
+- **WHEN** `OPENCAGE_API_KEY` no está definida ni en el entorno ni en `.env` y el usuario elige la estandarización de direcciones
+- **THEN** el sistema genera los archivos de `estandarizado/` con normalidad
+
+#### Scenario: Ubicación sin consultas y sin credencial
+- **WHEN** `OPENCAGE_API_KEY` no está definida y el usuario ejecuta `python -m georef ubicar --sin-consultas`
+- **THEN** el sistema escribe el archivo de coordenadas sin pedir la llave
+
+#### Scenario: Subconjunto sin credencial
+- **WHEN** `OPENCAGE_API_KEY` no está definida y existe `coordenadas/coordenadas_area_metropolitana.xlsx`
+- **THEN** `python -m georef subconjunto --area medellin` termina con normalidad

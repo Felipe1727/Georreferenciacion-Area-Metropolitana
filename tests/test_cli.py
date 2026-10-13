@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from conftest import escribir_configuracion, resultado
+from conftest import escribir_configuracion
 
 ESTANDARIZADO = Path("estandarizado")
 PRINCIPALES = ESTANDARIZADO / "principales_area_metropolitana.xlsx"
@@ -26,7 +26,7 @@ def coordenadas_previas(directorio_trabajo):
             "Ciudad Residencia": ["MEDELLIN - ANTIOQUIA", "BELLO - ANTIOQUIA"],
             "Latitud": [6.2, 6.33],
             "Longitud": [-75.5, -75.55],
-            "Complemento": ["X", "Y"],
+            "Nivel ubicacion": ["BARRIO", "MUNICIPIO"],
         }
     ).to_excel(COORDENADAS)
     return COORDENADAS.read_bytes()
@@ -55,23 +55,25 @@ def test_subcomando_estandarizar_sin_preguntas(directorio_trabajo, ejecutar_main
     ]
 
 
-def test_subcomando_geocodificar_igual_que_opcion_2(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
+def test_subcomando_ubicar_igual_que_opcion_2(con_puntos, ejecutar_main, llave_falsa, cliente):
     ejecutar_main(argv=("estandarizar",))
-    geocodificador.por_defecto = resultado(6.2, -75.5)
-    ejecutar_main(argv=("geocodificar",))
+    ejecutar_main(argv=("ubicar",))
     por_subcomando = pd.read_excel(COORDENADAS, index_col=0)
-    consultas = list(geocodificador.consultas)
+    assert cliente.consultas
 
     COORDENADAS.unlink()
-    geocodificador.consultas.clear()
     ejecutar_main(2)
     assert pd.read_excel(COORDENADAS, index_col=0).equals(por_subcomando)
-    assert geocodificador.consultas == consultas
 
 
-def test_subcomando_mejorar(coordenadas_previas, ejecutar_main, llave_falsa, geocodificador):
-    ejecutar_main(argv=("mejorar",))
-    assert pd.read_excel(COORDENADAS, index_col=0)["Latitud"].tolist() == [6.2, 6.33]
+@pytest.mark.parametrize("subcomando", ["geocodificar", "mejorar"])
+def test_subcomandos_eliminados(coordenadas_previas, ejecutar_main, llave_falsa, cliente, capsys, subcomando):
+    with pytest.raises(SystemExit) as salida:
+        ejecutar_main(argv=(subcomando,))
+    assert salida.value.code not in (None, 0)
+    assert "ubicar" in capsys.readouterr().err
+    assert cliente.consultas == []
+    assert COORDENADAS.read_bytes() == coordenadas_previas
 
 
 def test_subcomando_mapas(coordenadas_previas, ejecutar_main):
@@ -102,10 +104,10 @@ def test_config_alternativa(directorio_trabajo, ejecutar_main):
 
 # --- Menu --------------------------------------------------------------------------------------
 
-def test_opcion_4_con_original_vacio_no_abre_dialogo(original_vacio, ejecutar_main):
+def test_opcion_3_con_original_vacio_no_abre_dialogo(original_vacio, ejecutar_main):
     Path("coordenadas").mkdir()
-    pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5]}).to_excel(COORDENADAS)
-    ejecutar_main(4)
+    pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5], "Nivel ubicacion": ["BARRIO"]}).to_excel(COORDENADAS)
+    ejecutar_main(3)
     assert (MAPAS / "individual.html").exists()
 
 
@@ -126,23 +128,30 @@ def test_opcion_1_con_original_vacio_abre_dialogo(original_vacio, ejecutar_main,
 
 
 @pytest.mark.parametrize("eleccion", ["1", "medellin"])
-def test_opcion_5_extrae_el_subconjunto_elegido(coordenadas_previas, ejecutar_main, capsys, eleccion):
-    ejecutar_main(["5", eleccion])
+def test_opcion_4_extrae_el_subconjunto_elegido(coordenadas_previas, ejecutar_main, capsys, eleccion):
+    ejecutar_main(["4", eleccion])
     assert (Path("coordenadas") / "coordenadas_medellin.xlsx").exists()
     assert "1. medellin (MEDELLIN - ANTIOQUIA)" in capsys.readouterr().out
 
 
 def test_opcion_invalida_se_vuelve_a_pedir(coordenadas_previas, ejecutar_main, capsys):
-    ejecutar_main(["9", "4"])
+    ejecutar_main(["5", "3"])
     assert "Opción inválida" in capsys.readouterr().out
     assert (MAPAS / "individual.html").exists()
 
 
-def test_menu_muestra_las_cinco_opciones(coordenadas_previas, ejecutar_main, capsys):
-    ejecutar_main(4)
+def test_menu_muestra_las_cuatro_opciones(coordenadas_previas, ejecutar_main, capsys):
+    ejecutar_main(3)
     salida = capsys.readouterr().out
-    for opcion in ("1. Estandarización", "2. Conversión", "3. Mejora", "4. Generación", "5. Extracción"):
+    for opcion in ("1. Estandarización", "2. Ubicación", "3. Generación", "4. Extracción"):
         assert opcion in salida
+    assert "5." not in salida and "Mejora" not in salida
+
+
+def test_opcion_2_ubica(con_puntos, ejecutar_main, llave_falsa, cliente):
+    ejecutar_main(1)
+    ejecutar_main(2)
+    assert pd.read_excel(COORDENADAS, index_col=0)["Nivel ubicacion"].notna().all()
 
 
 # --- Argumentos invalidos y ayuda ----------------------------------------------------------------
@@ -162,24 +171,34 @@ def test_subconjunto_sin_area(original_vacio, ejecutar_main, capsys):
     assert "--area" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("muestra", ["0", "-3", "diez"])
+def test_muestra_no_valida(original_vacio, ejecutar_main, capsys, muestra):
+    with pytest.raises(SystemExit) as salida:
+        ejecutar_main(argv=("comparar-consultas", "--muestra", muestra))
+    assert salida.value.code not in (None, 0)
+    assert "la muestra debe ser un entero positivo" in capsys.readouterr().err
+
+
 def test_ayuda_lista_los_subcomandos(ejecutar_main, capsys):
     with pytest.raises(SystemExit) as salida:
         ejecutar_main(argv=("--help",))
     assert salida.value.code == 0
     ayuda = capsys.readouterr().out
-    for subcomando in ("estandarizar", "geocodificar", "mejorar", "mapas", "subconjunto"):
+    for subcomando in ("estandarizar", "ubicar", "mapas", "subconjunto", "consultar-municipios",
+                       "comparar-consultas"):
         assert subcomando in ayuda
+    assert "geocodificar" not in ayuda and "mejorar" not in ayuda
     assert "menú interactivo" in ayuda
 
 
 # --- Configuracion invalida y credenciales -------------------------------------------------------
 
-def test_configuracion_invalida_sin_efectos(coordenadas_previas, ejecutar_main, llave_falsa, geocodificador):
+def test_configuracion_invalida_sin_efectos(coordenadas_previas, ejecutar_main, llave_falsa, cliente):
     escribir_configuracion("mala.toml", ("[columnas]\n", "[columnas]\ncolumna_extra = 1\n"))
     with pytest.raises(SystemExit) as salida:
-        ejecutar_main(argv=("--config", "mala.toml", "geocodificar"))
+        ejecutar_main(argv=("--config", "mala.toml", "ubicar"))
     assert "columnas.columna_extra: clave desconocida" in salida.value.code
-    assert geocodificador.consultas == []
+    assert cliente.consultas == []
     assert COORDENADAS.read_bytes() == coordenadas_previas
 
 
@@ -191,13 +210,14 @@ def test_configuracion_inexistente_no_crea_directorios(tmp_path, monkeypatch, ej
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("subcomando", ["geocodificar", "mejorar"])
-def test_subcomandos_con_proveedor_exigen_la_llave(coordenadas_previas, ejecutar_main, geocodificador, subcomando):
+@pytest.mark.parametrize("argumentos", [("ubicar",)])
+def test_subcomandos_con_proveedor_exigen_la_llave(con_puntos, ejecutar_main, cliente, argumentos):
+    ejecutar_main(argv=("estandarizar",))
     with pytest.raises(SystemExit) as salida:
-        ejecutar_main(argv=(subcomando,))
+        ejecutar_main(argv=argumentos)
     assert "OPENCAGE_API_KEY" in salida.value.code
-    assert geocodificador.consultas == []
-    assert COORDENADAS.read_bytes() == coordenadas_previas
+    assert cliente.consultas == []
+    assert not COORDENADAS.exists()
 
 
 def test_subconjunto_no_exige_la_llave(coordenadas_previas, ejecutar_main):

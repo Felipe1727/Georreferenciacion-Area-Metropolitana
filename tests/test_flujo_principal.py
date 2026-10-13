@@ -4,8 +4,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from conftest import CENTROIDE_MEDELLIN, resultado
-
 ESTANDARIZADO = Path("estandarizado")
 COORDENADAS = Path("coordenadas") / "coordenadas_area_metropolitana.xlsx"
 MAPAS = Path("mapas") / "area_metropolitana"
@@ -35,9 +33,8 @@ def test_opcion_1_genera_archivos_estandarizados(directorio_trabajo, ejecutar_ma
     assert all(nombre.isascii() for nombre in generados)
 
 
-def test_conversion_con_solo_archivos_de_nombre_antiguo_termina(
-    directorio_trabajo, ejecutar_main, llave_falsa, geocodificador
-):
+def test_ubicacion_con_solo_archivos_de_nombre_antiguo_termina(directorio_trabajo, ejecutar_main, llave_falsa,
+                                                                cliente):
     ESTANDARIZADO.mkdir(exist_ok=True)
     pd.DataFrame({"Direccion de residencia": ["CL 10 #20-30"]}).to_excel(
         ESTANDARIZADO / "principales_área_metropolitana.xlsx"
@@ -46,63 +43,43 @@ def test_conversion_con_solo_archivos_de_nombre_antiguo_termina(
         ejecutar_main(2)
     assert "principales_area_metropolitana.xlsx" in salida.value.code
     assert "estandarización" in salida.value.code
-    assert geocodificador.consultas == []
+    assert cliente.consultas == []
     assert not COORDENADAS.exists()
 
 
-def test_opcion_2_geocodifica_principales(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
+def test_opcion_2_ubica_el_area_metropolitana(con_puntos, ejecutar_main, llave_falsa, cliente):
     ejecutar_main(1)
-    geocodificador.por_defecto = resultado(6.2, -75.5)
     ejecutar_main(2)
     coordenadas = pd.read_excel(COORDENADAS, index_col=0)
-    assert list(coordenadas.index) == [0, 1, 2, 3, 8, 9]
-    assert coordenadas["Latitud"].notna().all()
-    assert geocodificador.llaves == ["llave-falsa"]
+    assert list(coordenadas.index) == [0, 1, 2, 3, 4, 5, 8, 9]
+    assert coordenadas[["Latitud", "Longitud", "Nivel ubicacion"]].notna().all().all()
+    assert cliente.llaves == ["llave-falsa"]
 
 
-def test_opcion_3_sin_coordenadas_termina(directorio_trabajo, ejecutar_main, llave_falsa):
+def test_opcion_3_sin_coordenadas_termina(directorio_trabajo, ejecutar_main):
     with pytest.raises(SystemExit) as salida:
         ejecutar_main(3)
     assert salida.value.code == "Error: Necesitas primero procesar las coordenadas."
 
 
-def test_opcion_3_mejora_por_barrio(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
-    COORDENADAS.parent.mkdir(exist_ok=True)
-    pd.DataFrame(
-        {
-            "Latitud": [CENTROIDE_MEDELLIN[0]],
-            "Longitud": [CENTROIDE_MEDELLIN[1]],
-            "Complemento": ["CASA 2 CALASANZ -*- URBA#"],
-        }
-    ).to_excel(COORDENADAS)
-    geocodificador.respuestas = {"CALASANZ, MEDELLIN": resultado(6.26, -75.6)}
-    ejecutar_main(3)
-    coordenadas = pd.read_excel(COORDENADAS, index_col=0)
-    assert (coordenadas.loc[0, "Latitud"], coordenadas.loc[0, "Longitud"]) == (6.26, -75.6)
-
-
-def test_opcion_4_genera_mapas(directorio_trabajo, ejecutar_main):
+def test_opcion_3_genera_mapas(directorio_trabajo, ejecutar_main):
     Path("coordenadas").mkdir(exist_ok=True)
-    pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5]}).to_excel(COORDENADAS)
-    ejecutar_main(4)
+    pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5], "Nivel ubicacion": ["BARRIO"]}).to_excel(COORDENADAS)
+    ejecutar_main(3)
     assert (MAPAS / "individual.html").exists()
     assert (MAPAS / "filtrados" / "clusters_filtrados.html").exists()
 
 
-def test_modo_c_geocodifica_con_llave_del_entorno(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
+def test_modo_c_ubica_con_llave_del_entorno(con_puntos, ejecutar_main, llave_falsa, cliente):
     ejecutar_main(1)
-    geocodificador.por_defecto = resultado(6.2, -75.5)
-    # Termina sin error (antes con sys.exit() sin codigo; ahora la funcion simplemente retorna).
     ejecutar_main(argv=("c",))
-    assert geocodificador.llaves == ["llave-falsa"]
+    assert cliente.llaves == ["llave-falsa"]
     assert COORDENADAS.exists()
     assert not Path("llave").exists()
 
 
-def test_modo_c_no_agrega_columna_unnamed(directorio_trabajo, ejecutar_main, llave_falsa, geocodificador):
-    # Antes, el modo c leia sin index_col=0 y arrastraba el indice como columna (defecto corregido
-    # en modularizacion-config: ahora usa el mismo codigo que la opcion 2).
+def test_modo_c_no_agrega_columna_unnamed(con_puntos, ejecutar_main, llave_falsa, cliente):
     ejecutar_main(1)
-    geocodificador.por_defecto = resultado(6.2, -75.5)
     ejecutar_main(argv=("c",))
-    assert "Unnamed: 0" not in pd.read_excel(COORDENADAS, index_col=0).columns
+    ejecutar_main(argv=("c",))
+    assert not any(str(c).startswith("Unnamed") for c in pd.read_excel(COORDENADAS, index_col=0).columns)

@@ -212,3 +212,104 @@ def test_referencia_sin_una_ruta(tmp_path):
     ruta = configuracion_modificada(tmp_path, ('alias_comunas = "data/alias_comunas.csv"\n', ""))
     errores, _ = errores_de(ruta)
     assert errores == ["referencia.alias_comunas: falta esta clave"]
+
+
+# Parámetros de la ubicación
+
+def test_parametros_de_ubicacion_incluidos():
+    ubicacion = cargar_configuracion(RUTA_INCLUIDA).ubicacion
+    assert ubicacion.formato_consulta == "abreviado"
+    assert ubicacion.tolerancia_metros == 250
+    assert ubicacion.pausa_segundos == 1
+    assert ubicacion.consulta_lugar_complemento is False
+    assert "city" in ubicacion.tipos_rechazados
+    assert set(ubicacion.nombres_via) == set(cargar_configuracion(RUTA_INCLUIDA).direcciones.tipos_via)
+
+
+def test_ubicacion_sin_una_clave(tmp_path):
+    ruta = configuracion_modificada(tmp_path, ("tolerancia_metros = 250\n", ""))
+    errores, _ = errores_de(ruta)
+    assert errores == ["ubicacion.tolerancia_metros: falta esta clave"]
+
+
+def test_formato_de_consulta_desconocido(tmp_path):
+    ruta = configuracion_modificada(tmp_path, ('formato_consulta = "abreviado"', 'formato_consulta = "completo"'))
+    errores, _ = errores_de(ruta)
+    assert len(errores) == 1
+    assert errores[0].startswith("ubicacion.formato_consulta: 'completo'")
+    assert "'abreviado'" in errores[0] and "'expandido'" in errores[0]
+
+
+def test_tipo_de_via_sin_nombre(tmp_path):
+    ruta = configuracion_modificada(tmp_path, ('CIR = "Circular", ', ""))
+    errores, _ = errores_de(ruta)
+    assert errores == ["ubicacion.nombres_via: falta el nombre del tipo de vía 'CIR'"]
+
+
+@pytest.mark.parametrize("viejo, nuevo, error", [
+    ("confianza_minima = 8", "confianza_minima = 11", "ubicacion.confianza_minima: debe ser un entero de 0 a 10"),
+    ("confianza_minima = 8", "confianza_minima = 8.5", "ubicacion.confianza_minima: debe ser un entero"),
+    ("tolerancia_metros = 250", "tolerancia_metros = -1", "ubicacion.tolerancia_metros: no puede ser negativa"),
+    ("pausa_segundos = 1", 'pausa_segundos = "1"', "ubicacion.pausa_segundos: debe ser un número"),
+    ("limite_consultas = 1000", "limite_consultas = 0", "ubicacion.limite_consultas: debe ser un entero positivo"),
+    ("consulta_lugar_complemento = false", 'consulta_lugar_complemento = "no"',
+     "ubicacion.consulta_lugar_complemento: debe ser true o false"),
+    ('CL = "Calle"', 'CL = "Calle", KR = "Carrera"',
+     "ubicacion.nombres_via.KR: no es un tipo de vía de direcciones.tipos_via"),
+])
+def test_valores_no_validos_de_ubicacion(tmp_path, viejo, nuevo, error):
+    errores, _ = errores_de(configuracion_modificada(tmp_path, (viejo, nuevo)))
+    assert errores == [error]
+
+
+def test_pausa_decimal_valida(tmp_path):
+    ruta = configuracion_modificada(tmp_path, ("pausa_segundos = 1", "pausa_segundos = 1.5"))
+    assert cargar_configuracion(ruta).ubicacion.pausa_segundos == 1.5
+
+
+# Puntos de los municipios
+
+def con_puntos(tmp_path, *lineas):
+    """Configuración incluida más una sección [puntos_municipios] con `lineas`."""
+    ruta = configuracion_modificada(tmp_path)
+    with open(ruta, "a", encoding="utf-8") as archivo:
+        archivo.write("\n[puntos_municipios]\n" + "\n".join(lineas) + "\n")
+    return ruta
+
+
+BELLO = '"BELLO - ANTIOQUIA" = { latitud = 6.33, longitud = -75.56, fuente = "OpenCage", fecha = "2026-10-12" }'
+
+
+def test_seccion_de_puntos_ausente(tmp_path):
+    assert dict(cargar_configuracion(configuracion_modificada(tmp_path)).puntos_municipios) == {}
+
+
+def test_puntos_de_municipios_validos(tmp_path):
+    otra = '"CALDAS - ANTIOQUIA" = { latitud = 6.09, longitud = -75.63, fuente = "a mano", fecha = 2026-10-12 }'
+    puntos = cargar_configuracion(con_puntos(tmp_path, BELLO, otra)).puntos_municipios
+    assert puntos["BELLO - ANTIOQUIA"].latitud == 6.33
+    assert puntos["BELLO - ANTIOQUIA"].fuente == "OpenCage"
+    assert puntos["CALDAS - ANTIOQUIA"].fecha == "2026-10-12"
+
+
+def test_punto_de_municipio_fuera_del_area(tmp_path):
+    rionegro = BELLO.replace("BELLO", "RIONEGRO")
+    errores, _ = errores_de(con_puntos(tmp_path, rionegro))
+    assert errores == ['puntos_municipios."RIONEGRO - ANTIOQUIA": \'RIONEGRO - ANTIOQUIA\' no pertenece al área '
+                       "metropolitana"]
+
+
+def test_latitud_fuera_de_rango(tmp_path):
+    errores, _ = errores_de(con_puntos(tmp_path, BELLO.replace("latitud = 6.33", "latitud = 95")))
+    assert errores == ['puntos_municipios."BELLO - ANTIOQUIA".latitud: debe estar entre -90 y 90']
+
+
+def test_punto_sin_fuente(tmp_path):
+    errores, _ = errores_de(con_puntos(tmp_path, BELLO.replace(', fuente = "OpenCage"', "")))
+    assert errores == ['puntos_municipios."BELLO - ANTIOQUIA".fuente: falta esta clave']
+
+
+def test_estandarizar_sin_puntos(directorio_trabajo, ejecutar_main):
+    # "Sección ausente": la configuración incluida no tiene [puntos_municipios].
+    ejecutar_main(argv=["estandarizar"])
+    assert (directorio_trabajo / "estandarizado" / "total_area_metropolitana.xlsx").exists()

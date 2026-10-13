@@ -1,6 +1,7 @@
 """Mapas HTML de las coordenadas con folium.
 
-La lógica es la heredada de `main.py`; el cambio `mapas` sustituye el centro y el zoom fijos.
+La lógica es la heredada de `main.py`, salvo el filtrado, que usa el nivel de ubicación; el
+cambio `mapas` sustituye el centro y el zoom fijos.
 """
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import folium
 import pandas as pd
 from folium.plugins import FastMarkerCluster
 
-from georef.geocodificacion import CENTROIDE_MEDELLIN
+from georef.ubicacion import MUNICIPIO
 
 # Vista inicial de los mapas (centro de Medellín).
 CENTRO_MAPA = [6.2464186, -75.5942503]
@@ -19,11 +20,11 @@ def visualizar(df : pd.DataFrame, carpeta):
     """
     Genera y guarda mapas HTML con marcadores y clusters basados en coordenadas del DataFrame.
 
-    Escribe `individual.html` y `clusters.html` en `carpeta`, y las versiones sin los puntos del
-    centroide de Medellín en `carpeta/filtrados/`. Crea las carpetas si no existen.
+    Escribe `individual.html` y `clusters.html` en `carpeta`, y en `carpeta/filtrados/` las
+    versiones sin los registros ubicados solo a nivel de municipio. Crea las carpetas si no existen.
 
     Args:
-        df (pd.DataFrame): DataFrame con columnas 'Latitud' y 'Longitud'.
+        df (pd.DataFrame): DataFrame con columnas 'Latitud', 'Longitud' y 'Nivel ubicacion'.
         carpeta: Carpeta de los mapas del área (por ejemplo, `mapas/area_metropolitana`).
     """
     carpeta = Path(carpeta)
@@ -45,9 +46,7 @@ def visualizar(df : pd.DataFrame, carpeta):
     mapa_marcadores.save(carpeta / 'individual.html')
     mapa_clusters.save(carpeta / 'clusters.html')
 
-    df_filtrado = df[
-        ~((df["Latitud"] == CENTROIDE_MEDELLIN[0]) & (df["Longitud"] == CENTROIDE_MEDELLIN[1]))
-    ]
+    df_filtrado = df[df["Nivel ubicacion"] != MUNICIPIO]
     latitudes = [a['Latitud'] for a in df_filtrado.to_dict('records')]
     longitudes = [a['Longitud'] for a in df_filtrado.to_dict('records')]
     data = list(zip(latitudes, longitudes))

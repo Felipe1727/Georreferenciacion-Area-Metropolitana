@@ -25,6 +25,14 @@ RUTA_PRINCIPALES_AM = CARPETA_ESTANDARIZADO / f"principales_{AREA_METROPOLITANA}
 RUTA_ESPECIALES_AM = CARPETA_ESTANDARIZADO / f"especiales_{AREA_METROPOLITANA}.xlsx"
 RUTA_FUERA_AM = CARPETA_ESTANDARIZADO / f"fuera_{AREA_METROPOLITANA}.xlsx"
 
+# Copia del archivo de coordenadas de formato anterior a ubicacion-por-niveles (sin 'Nivel ubicacion').
+RUTA_COORDENADAS_ANTERIOR = CARPETA_COORDENADAS / f"coordenadas_{AREA_METROPOLITANA}_anterior.xlsx"
+
+# Caché de las respuestas de OpenCage y registro de diagnóstico de cada petición (contienen
+# direcciones: están en coordenadas/, que git ignora).
+RUTA_CACHE_CONSULTAS = CARPETA_COORDENADAS / "cache_consultas.csv"
+RUTA_REGISTRO_CONSULTAS = CARPETA_COORDENADAS / "registro_consultas.csv"
+
 # Nombre que tenía el archivo de coordenadas antes de modularizacion-config.
 RUTA_COORDENADAS_ANTIGUA = CARPETA_COORDENADAS / "coordenadas.xlsx"
 

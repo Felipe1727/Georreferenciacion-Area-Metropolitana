@@ -4,10 +4,12 @@ Ningun valor procede de `original/`: las direcciones son inventadas e imitan
 las formas reales (via + numeros + complemento + `BARRIO -*- ZONA`).
 """
 import dataclasses
+import re
 from pathlib import Path
 
 import pandas as pd
 import pytest
+import shapely
 
 from georef import archivos, cli, geocodificacion
 from georef.config import cargar_configuracion
@@ -29,38 +31,86 @@ DIRECCIONES = {
     "DG 50 A 35 12 SURAMERICA -*- URBANO": "ITAGUI - ANTIOQUIA",
 }
 
-CENTROIDE_MEDELLIN = (6.25184, -75.56359)
+def resultado_api(lat, lng, tipo="building", confianza=10, texto="Resultado sintetico"):
+    """Un resultado de OpenCage con los campos que usa la ubicacion."""
+    return {"geometry": {"lat": lat, "lng": lng}, "confidence": confianza, "components": {"_type": tipo},
+            "formatted": texto}
 
 
-def resultado(lat, lng):
-    """Respuesta minima de OpenCage con un unico resultado."""
-    return [{"geometry": {"lat": lat, "lng": lng}}]
+class ClienteFalso:
+    """Sustituto de OpenCageGeocode para la sesion de consultas (respuestas `raw_response`).
 
-
-class GeocodificadorFalso:
-    """Sustituto de OpenCageGeocode con respuestas guionizadas.
-
-    `respuestas` asocia consulta -> lista de resultados o excepcion a lanzar.
-    Las consultas no previstas devuelven `por_defecto`.
+    `respuestas` asocia consulta -> lista de resultados, respuesta completa (dict con
+    "results") o excepcion a lanzar. Las consultas no previstas no tienen resultados.
+    Registra cada consulta con sus parametros y el instante (reloj del proceso) en que empieza.
     """
 
-    def __init__(self, respuestas=None, por_defecto=None):
+    def __init__(self, respuestas=None, restantes=2400):
         self.respuestas = respuestas or {}
-        self.por_defecto = [] if por_defecto is None else por_defecto
-        self.consultas = []
+        self.restantes = restantes
+        self.llamadas = []  # (consulta, parametros)
+        self.inicios = []
         self.llaves = []
 
-    def __call__(self, api_key):
-        # Permite usar la instancia como si fuera la clase OpenCageGeocode.
-        self.llaves.append(api_key)
+    def __call__(self, key):
+        self.llaves.append(key)
         return self
 
-    def geocode(self, consulta, **kwargs):
-        self.consultas.append(consulta)
-        valor = self.respuestas.get(consulta, self.por_defecto)
+    @property
+    def consultas(self):
+        return [consulta for consulta, _ in self.llamadas]
+
+    def geocode(self, consulta, **parametros):
+        self.inicios.append(geocodificacion.time.monotonic())
+        self.llamadas.append((consulta, parametros))
+        valor = self.respuestas.get(consulta, [])
         if isinstance(valor, Exception):
             raise valor
-        return valor
+        if isinstance(valor, dict):
+            return valor
+        self.restantes -= 1
+        return {"results": valor, "rate": {"limit": 2500, "remaining": self.restantes}}
+
+
+class RelojFalso:
+    """Reloj para `time.monotonic` y `time.sleep`: dormir avanza el reloj sin esperar de verdad."""
+
+    def __init__(self):
+        self.ahora = 1000.0
+        self.esperas = []
+
+    def monotonic(self):
+        return self.ahora
+
+    def sleep(self, segundos):
+        self.esperas.append(segundos)
+        self.ahora += segundos
+
+
+@pytest.fixture
+def reloj(monkeypatch):
+    falso = RelojFalso()
+    monkeypatch.setattr(geocodificacion.time, "monotonic", falso.monotonic)
+    monkeypatch.setattr(geocodificacion.time, "sleep", falso.sleep)
+    return falso
+
+
+@pytest.fixture
+def cliente(monkeypatch, reloj):
+    """Instala un ClienteFalso como OpenCageGeocode; el test configura sus respuestas."""
+    falso = ClienteFalso()
+    monkeypatch.setattr(geocodificacion, "OpenCageGeocode", falso)
+    return falso
+
+
+def desplazado(poligonos, geometria, metros):
+    """Punto WGS84 a `metros` exactos de `geometria` (desplazamiento medido en EPSG:9377).
+
+    Se parte del vertice mas al este y se avanza hacia el este: ningun punto de la geometria
+    tiene una x mayor, asi que ese vertice es el mas cercano.
+    """
+    x, y = max(shapely.get_coordinates(geometria), key=lambda punto: punto[0])
+    return poligonos.a_wgs84(shapely.Point(x + metros, y))
 
 
 def _prohibido(*args, **kwargs):
@@ -79,17 +129,13 @@ def sin_red_ni_esperas(monkeypatch):
     monkeypatch.delenv("OPENCAGE_API_KEY", raising=False)
 
 
-@pytest.fixture
-def geocodificador(monkeypatch):
-    """Instala un GeocodificadorFalso; el test configura sus respuestas."""
-    falso = GeocodificadorFalso()
-    monkeypatch.setattr(geocodificacion, "OpenCageGeocode", falso)
-    return falso
-
-
 def escribir_configuracion(ruta, *reemplazos):
-    """Escribe en `ruta` la configuracion incluida con los reemplazos (viejo, nuevo) aplicados una vez."""
-    texto = RUTA_CONFIGURACION.read_text(encoding="utf-8")
+    """Escribe en `ruta` la configuracion incluida con los reemplazos (viejo, nuevo) aplicados una vez.
+
+    Sin la seccion [puntos_municipios] del usuario, si la tiene: los tests usan puntos sinteticos.
+    """
+    texto = re.sub(r"(?ms)^\[puntos_municipios\]\n.*?(?=^\[|\Z)", "",
+                   RUTA_CONFIGURACION.read_text(encoding="utf-8"))
     for viejo, nuevo in reemplazos:
         assert viejo in texto, viejo
         texto = texto.replace(viejo, nuevo, 1)
@@ -150,6 +196,24 @@ def directorio_trabajo(tmp_path, monkeypatch, df_original, sin_dialogo):
     (tmp_path / "config").mkdir()
     escribir_configuracion(tmp_path / "config" / "georef.toml")
     return tmp_path
+
+
+def seccion_puntos(municipios):
+    """Seccion [puntos_municipios] con puntos sinteticos (6.00, 6.01, ... de latitud; no son los reales)."""
+    lineas = ["", "[puntos_municipios]"]
+    for i, municipio in enumerate(municipios):
+        lineas.append(f'"{municipio}" = {{ latitud = {6 + i / 100}, longitud = -75.5, fuente = "prueba", '
+                      'fecha = "2026-10-12" }')
+    return "\n".join(lineas) + "\n"
+
+
+@pytest.fixture
+def con_puntos(directorio_trabajo):
+    """Anade puntos sinteticos de los municipios a `config/georef.toml` del directorio de trabajo y la devuelve cargada."""
+    ruta = directorio_trabajo / "config" / "georef.toml"
+    with open(ruta, "a", encoding="utf-8") as archivo:
+        archivo.write(seccion_puntos(cargar_configuracion(ruta).area_metropolitana))
+    return cargar_configuracion(ruta)
 
 
 @pytest.fixture

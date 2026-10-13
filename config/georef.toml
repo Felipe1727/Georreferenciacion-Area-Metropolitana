@@ -81,3 +81,52 @@ geojson = "data/limite_barrio_vereda_cata.geojson"
 alias_barrios = "data/alias_barrios.csv"
 alias_comunas = "data/alias_comunas.csv"
 municipio_con_poligonos = "MEDELLIN - ANTIOQUIA"
+
+# Ubicación por niveles (python -m georef ubicar). Cada registro del área
+# metropolitana recibe el punto más preciso disponible: DIRECCION (punto de
+# OpenCage validado), BARRIO, COMUNA o MUNICIPIO. Solo se consultan a OpenCage
+# las vías principales del municipio con polígonos.
+[ubicacion]
+# Texto de las consultas: "abreviado" (CL 10 #20-30, MEDELLIN, ANTIOQUIA, Colombia)
+# o "expandido" (Calle 10 # 20-30, ...). Para elegir, compara los dos con:
+#   python -m georef comparar-consultas --muestra 50
+formato_consulta = "abreviado"
+# Un punto de OpenCage solo se acepta si su "confidence" (0 a 10) llega a este
+# valor. Valor provisional: recalíbralo con comparar-consultas.
+confianza_minima = 8
+# Tipos de resultado de OpenCage que nunca se aceptan: indican que solo se
+# encontró la ciudad o algo mayor.
+tipos_rechazados = ["city", "county", "state", "country"]
+# Distancia máxima, en metros, del punto de OpenCage a Medellín y al barrio (o,
+# si no hay barrio, a la comuna) que declaró el estudiante. Más lejos, prevalece
+# el lugar declarado.
+tolerancia_metros = 250
+# Segundos mínimos entre el inicio de dos peticiones (el free trial admite una
+# por segundo).
+pausa_segundos = 1
+# Máximo de peticiones por ejecución (el free trial admite 2.500 al día). Las
+# consultas que no se hagan quedan pendientes para la siguiente ejecución.
+limite_consultas = 1000
+# Segunda consulta con el lugar con nombre del complemento (por ejemplo
+# "UNIDAD LOS PINOS, LAURELES, MEDELLIN, ANTIOQUIA, Colombia") cuando la primera
+# no se acepta. Gasta más cuota; desactivada hasta medir si aporta algo.
+consulta_lugar_complemento = false
+# Palabras del complemento con las que empieza un lugar con nombre.
+palabras_lugar = ["UNIDAD", "EDIFICIO", "URBANIZACION", "URB", "CONJUNTO", "CONDOMINIO", "PARQUE"]
+# Nombre completo de cada tipo de vía, para el formato "expandido".
+nombres_via = { CL = "Calle", CR = "Carrera", AV = "Avenida", CIR = "Circular", DG = "Diagonal", TV = "Transversal" }
+
+# Puntos del nivel MUNICIPIO de la ubicación. Generados con 'python -m georef consultar-municipios'
+# el 2026-10-12 (fuente: OpenCage; consulta "<MUNICIPIO>, <DEPARTAMENTO>, Colombia").
+# Revísalos y corrígelos a mano si alguno no es el municipio correcto.
+[puntos_municipios]
+"MEDELLIN - ANTIOQUIA" = { latitud = 6.2697324, longitud = -75.6025597, fuente = "OpenCage", fecha = "2026-10-12" }
+"ITAGUI - ANTIOQUIA" = { latitud = 6.1724352, longitud = -75.6093254, fuente = "OpenCage", fecha = "2026-10-12" }
+"BELLO - ANTIOQUIA" = { latitud = 6.334997, longitud = -75.5582665, fuente = "OpenCage", fecha = "2026-10-12" }
+"GIRARDOTA - ANTIOQUIA" = { latitud = 6.3773809, longitud = -75.4459762, fuente = "OpenCage", fecha = "2026-10-12" }
+"BARBOSA - ANTIOQUIA" = { latitud = 6.4370185, longitud = -75.3313779, fuente = "OpenCage", fecha = "2026-10-12" }
+"COPACABANA - ANTIOQUIA" = { latitud = 6.3461047, longitud = -75.5080262, fuente = "OpenCage", fecha = "2026-10-12" }
+"ENVIGADO - ANTIOQUIA" = { latitud = 6.1701348, longitud = -75.587415, fuente = "OpenCage", fecha = "2026-10-12" }
+"SABANETA - ANTIOQUIA" = { latitud = 6.1515344, longitud = -75.6153715, fuente = "OpenCage", fecha = "2026-10-12" }
+"CALDAS - ANTIOQUIA" = { latitud = 6.0918609, longitud = -75.6356917, fuente = "OpenCage", fecha = "2026-10-12" }
+"LA ESTRELLA - ANTIOQUIA" = { latitud = 6.1576781, longitud = -75.6433878, fuente = "OpenCage", fecha = "2026-10-12" }

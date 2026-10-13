@@ -35,6 +35,7 @@ def coordenadas_am(trabajo):
             "Direccion de residencia": ["CL 1 #2-3", "CR 4 #5-6", "CL 7 #8-9"],
             "Latitud": [6.2, 6.33, 6.25],
             "Longitud": [-75.5, -75.55, -75.6],
+            "Nivel ubicacion": ["BARRIO", "MUNICIPIO", "DIRECCION"],
         },
         index=[3, 10, 42],
     )
@@ -95,7 +96,8 @@ def test_sin_coordenadas_del_area(trabajo, configuracion):
 
 def test_subconjunto_sin_registros(trabajo, configuracion):
     pd.DataFrame(
-        {"Ciudad Residencia": ["BELLO - ANTIOQUIA"], "Latitud": [6.33], "Longitud": [-75.55]}
+        {"Ciudad Residencia": ["BELLO - ANTIOQUIA"], "Latitud": [6.33], "Longitud": [-75.55],
+         "Nivel ubicacion": ["MUNICIPIO"]}
     ).to_excel(COORDENADAS_AM)
     with pytest.raises(SystemExit) as salida:
         etapas.extraer_subconjunto(configuracion, "medellin")
@@ -110,3 +112,12 @@ def test_archivo_antiguo(trabajo, configuracion):
         etapas.extraer_subconjunto(configuracion, "medellin")
     assert "coordenadas/coordenadas.xlsx" in salida.value.code
     assert not COORDENADAS_MEDELLIN.exists()
+
+
+def test_coordenadas_sin_nivel(trabajo, configuracion):
+    pd.DataFrame({"Ciudad Residencia": ["MEDELLIN - ANTIOQUIA"], "Latitud": [6.2], "Longitud": [-75.5]}).to_excel(
+        COORDENADAS_AM)
+    with pytest.raises(SystemExit) as salida:
+        etapas.extraer_subconjunto(configuracion, "medellin")
+    assert salida.value.code == etapas.MENSAJE_SIN_NIVEL
+    assert not COORDENADAS_MEDELLIN.exists() and not any(ruta.exists() for ruta in MAPAS_MEDELLIN)
