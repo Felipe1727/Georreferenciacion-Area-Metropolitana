@@ -136,14 +136,3 @@ MUST NOT mostrar direcciones ni otros datos de un registro.
 #### Scenario: Ejecución completa
 - **WHEN** termina una ubicación sin paradas
 - **THEN** la consola muestra el número de registros por nivel y por resultado, y ninguna dirección
-
-### Requirement: Mapas filtrados por nivel
-Los mapas filtrados (`filtrados/individual_filtrados.html` y `filtrados/clusters_filtrados.html`) SHALL excluir los registros con `Nivel ubicacion` igual a `MUNICIPIO`, en lugar de los registros situados en una coordenada fija. Si el archivo de coordenadas no tiene la columna `Nivel ubicacion`, los mapas MUST terminar con un mensaje que pida ejecutar `ubicar`.
-
-#### Scenario: Mapas tras ubicar
-- **WHEN** el archivo de coordenadas tiene 3 registros a nivel `BARRIO` y 2 a nivel `MUNICIPIO` y el usuario genera los mapas
-- **THEN** el mapa individual completo tiene 5 marcadores y el filtrado tiene 3
-
-#### Scenario: Archivo de coordenadas anterior
-- **WHEN** el archivo de coordenadas no tiene la columna `Nivel ubicacion` y el usuario genera los mapas
-- **THEN** el sistema termina con un mensaje que pide ejecutar `ubicar` y no escribe mapas

@@ -48,7 +48,7 @@ La configuración SHALL poder definir subconjuntos con nombre, cada uno con una 
 - **THEN** la validación falla con un mensaje que nombra el subconjunto
 
 ### Requirement: Extracción de un subconjunto sin consultar al proveedor
-Al extraer un subconjunto, el sistema SHALL tomar de `coordenadas/coordenadas_area_metropolitana.xlsx` los registros cuyo municipio pertenece al subconjunto. Debe escribirlos en `coordenadas/coordenadas_<nombre>.xlsx`, conservando columnas e índice, y generar sus cuatro mapas en `mapas/<nombre>/`. No consulta al proveedor ni exige la llave.
+Al extraer un subconjunto, el sistema SHALL tomar de `coordenadas/coordenadas_area_metropolitana.xlsx` los registros cuyo municipio pertenece al subconjunto. Debe escribirlos en `coordenadas/coordenadas_<nombre>.xlsx`, conservando columnas e índice, y generar su mapa con capas en `mapas/<nombre>/`, más los separados que se pidan. No consulta al proveedor ni exige la llave.
 
 #### Scenario: Subconjunto de Medellín
 - **WHEN** existe `coordenadas_area_metropolitana.xlsx` con registros de Medellín y de Bello, y el usuario extrae el subconjunto `medellin`
@@ -56,7 +56,11 @@ Al extraer un subconjunto, el sistema SHALL tomar de `coordenadas/coordenadas_ar
 
 #### Scenario: Mapas del subconjunto
 - **WHEN** el usuario extrae el subconjunto `medellin`
-- **THEN** el sistema escribe `mapas/medellin/individual.html`, `mapas/medellin/clusters.html`, `mapas/medellin/filtrados/individual_filtrados.html` y `mapas/medellin/filtrados/clusters_filtrados.html`, con los mismos criterios que los mapas del área metropolitana
+- **THEN** el sistema escribe `mapas/medellin/mapa.html` con los mismos criterios que el mapa del área metropolitana, y con las capas de comunas y barrios porque el subconjunto incluye Medellín
+
+#### Scenario: Separados del subconjunto
+- **WHEN** el usuario ejecuta `python -m georef subconjunto --area medellin --separado puntos`
+- **THEN** el sistema escribe además `mapas/medellin/separados/puntos.html`
 
 #### Scenario: Sin llamadas al proveedor
 - **WHEN** `OPENCAGE_API_KEY` no está definida y el usuario extrae un subconjunto
