@@ -78,15 +78,14 @@ def test_subcomandos_eliminados(coordenadas_previas, ejecutar_main, llave_falsa,
 
 def test_subcomando_mapas(coordenadas_previas, ejecutar_main):
     ejecutar_main(argv=("mapas",))
-    assert (MAPAS / "individual.html").exists()
-    assert (MAPAS / "filtrados" / "clusters_filtrados.html").exists()
+    assert (MAPAS / "mapa.html").exists()
 
 
 def test_subcomando_subconjunto(coordenadas_previas, ejecutar_main):
     ejecutar_main(argv=("subconjunto", "--area", "medellin"))
     medellin = pd.read_excel(Path("coordenadas") / "coordenadas_medellin.xlsx", index_col=0)
     assert list(medellin.index) == [0]
-    assert (Path("mapas") / "medellin" / "individual.html").exists()
+    assert (Path("mapas") / "medellin" / "mapa.html").exists()
 
 
 def test_estandarizar_sin_archivo_no_abre_dialogo(original_vacio, ejecutar_main):
@@ -107,8 +106,8 @@ def test_config_alternativa(directorio_trabajo, ejecutar_main):
 def test_opcion_3_con_original_vacio_no_abre_dialogo(original_vacio, ejecutar_main):
     Path("coordenadas").mkdir()
     pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5], "Nivel ubicacion": ["BARRIO"]}).to_excel(COORDENADAS)
-    ejecutar_main(3)
-    assert (MAPAS / "individual.html").exists()
+    ejecutar_main(["3", ""])
+    assert (MAPAS / "mapa.html").exists()
 
 
 def test_opcion_1_con_original_vacio_abre_dialogo(original_vacio, ejecutar_main, monkeypatch):
@@ -129,19 +128,19 @@ def test_opcion_1_con_original_vacio_abre_dialogo(original_vacio, ejecutar_main,
 
 @pytest.mark.parametrize("eleccion", ["1", "medellin"])
 def test_opcion_4_extrae_el_subconjunto_elegido(coordenadas_previas, ejecutar_main, capsys, eleccion):
-    ejecutar_main(["4", eleccion])
+    ejecutar_main(["4", eleccion, ""])
     assert (Path("coordenadas") / "coordenadas_medellin.xlsx").exists()
     assert "1. medellin (MEDELLIN - ANTIOQUIA)" in capsys.readouterr().out
 
 
 def test_opcion_invalida_se_vuelve_a_pedir(coordenadas_previas, ejecutar_main, capsys):
-    ejecutar_main(["5", "3"])
+    ejecutar_main(["5", "3", ""])
     assert "Opción inválida" in capsys.readouterr().out
-    assert (MAPAS / "individual.html").exists()
+    assert (MAPAS / "mapa.html").exists()
 
 
 def test_menu_muestra_las_cuatro_opciones(coordenadas_previas, ejecutar_main, capsys):
-    ejecutar_main(3)
+    ejecutar_main(["3", ""])
     salida = capsys.readouterr().out
     for opcion in ("1. Estandarización", "2. Ubicación", "3. Generación", "4. Extracción"):
         assert opcion in salida
@@ -184,7 +183,7 @@ def test_ayuda_lista_los_subcomandos(ejecutar_main, capsys):
         ejecutar_main(argv=("--help",))
     assert salida.value.code == 0
     ayuda = capsys.readouterr().out
-    for subcomando in ("estandarizar", "ubicar", "mapas", "subconjunto", "consultar-municipios",
+    for subcomando in ("estandarizar", "ubicar", "mapas", "subconjunto", "consultar-municipios", "ver-mapas",
                        "comparar-consultas"):
         assert subcomando in ayuda
     assert "geocodificar" not in ayuda and "mejorar" not in ayuda
@@ -223,3 +222,56 @@ def test_subcomandos_con_proveedor_exigen_la_llave(con_puntos, ejecutar_main, cl
 def test_subconjunto_no_exige_la_llave(coordenadas_previas, ejecutar_main):
     ejecutar_main(argv=("subconjunto", "--area", "medellin"))
     assert (Path("coordenadas") / "coordenadas_medellin.xlsx").exists()
+
+
+# --- Mapas separados (specs/linea-de-comandos y specs/mapas) -------------------------------------
+
+def separados():
+    carpeta = MAPAS / "separados"
+    return sorted(p.name for p in carpeta.iterdir()) if carpeta.exists() else []
+
+
+def test_mapas_con_separados(coordenadas_previas, ejecutar_main):
+    ejecutar_main(argv=("mapas", "--separado", "clusters", "--sin-municipio"))
+    assert (MAPAS / "mapa.html").exists() and separados() == ["clusters_sin_municipio.html"]
+
+
+def test_mapas_con_dos_separados(coordenadas_previas, ejecutar_main):
+    ejecutar_main(argv=("mapas", "--separado", "puntos", "--separado", "comunas_cantidad"))
+    assert separados() == ["comunas_cantidad.html", "puntos.html"]
+
+
+def test_vista_desconocida(coordenadas_previas, ejecutar_main, capsys):
+    with pytest.raises(SystemExit) as salida:
+        ejecutar_main(argv=("mapas", "--separado", "calor"))
+    assert salida.value.code == 2
+    error = capsys.readouterr().err
+    assert all(vista in error for vista in ("puntos", "clusters", "barrios_cantidad", "comunas_cantidad", "todos"))
+    assert not (MAPAS / "mapa.html").exists()
+
+
+def test_subconjunto_con_separados(coordenadas_previas, ejecutar_main):
+    ejecutar_main(argv=("subconjunto", "--area", "medellin", "--separado", "todos"))
+    assert (Path("mapas") / "medellin" / "separados" / "barrios_cantidad.html").exists()
+
+
+def test_separados_desde_el_menu(coordenadas_previas, ejecutar_main):
+    ejecutar_main(["3", "puntos, clusters", "s"])
+    assert separados() == ["clusters_sin_municipio.html", "puntos_sin_municipio.html"]
+
+
+def test_sin_separados_desde_el_menu(coordenadas_previas, ejecutar_main):
+    # Solo dos respuestas: si el menú preguntara por el nivel MUNICIPIO, faltaría la tercera.
+    ejecutar_main(["3", ""])
+    assert (MAPAS / "mapa.html").exists() and separados() == []
+
+
+def test_separado_invalido_en_el_menu(coordenadas_previas, ejecutar_main, capsys):
+    ejecutar_main(["3", "calor", "PUNTOS", "n"])
+    assert "Vista inválida: calor" in capsys.readouterr().out
+    assert separados() == ["puntos.html"]
+
+
+def test_separados_del_subconjunto_desde_el_menu(coordenadas_previas, ejecutar_main):
+    ejecutar_main(["4", "medellin", "puntos", ""])
+    assert (Path("mapas") / "medellin" / "separados" / "puntos.html").exists()

@@ -9,8 +9,9 @@ Módulos:
 - `georef.archivos`: rutas de trabajo y lectura del archivo de entrada.
 - `georef.direcciones`: separación por área y normalización de direcciones (sin archivos).
 - `georef.referencia`: índice de barrios y comunas de Medellín (GeoJSON y tablas de alias).
-- `georef.geografia`: polígonos de barrios, comunas y municipio (puntos y distancias).
+- `georef.geografia`: polígonos de barrios, comunas y municipio (puntos, distancias y geometrías para dibujar).
 - `georef.geocodificacion`: llave, texto de las consultas y sesión de consultas a OpenCage.
 - `georef.ubicacion`: cascada de niveles DIRECCION, BARRIO, COMUNA y MUNICIPIO.
-- `georef.mapas`: mapas HTML con folium.
+- `georef.mapas`: mapa HTML con capas y mapas separados, con folium.
+- `georef.visor`: servidor local para ver los mapas con el fondo de OpenStreetMap.
 """

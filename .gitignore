@@ -7,6 +7,8 @@ original/
 estandarizado/
 coordenadas/
 mapas/
+# ...salvo los artefactos de OpenSpec que se llaman igual (el cambio y la spec 'mapas')
+!openspec/**/mapas/
 
 # Python
 __pycache__/

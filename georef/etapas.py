@@ -10,7 +10,7 @@ import tomllib
 
 import pandas as pd
 
-from georef import archivos, direcciones, geocodificacion, mapas, ubicacion
+from georef import archivos, direcciones, geocodificacion, mapas, ubicacion, visor
 from georef.config import (AREA_METROPOLITANA, FORMATOS_CONSULTA, Configuracion, ErrorConfiguracion,
                            cargar_configuracion)
 from georef.geografia import Poligonos
@@ -19,6 +19,23 @@ from georef.referencia import ErrorReferencia, IndiceLugares
 MENSAJE_SIN_COORDENADAS = "Error: Necesitas primero procesar las coordenadas."
 MENSAJE_SIN_NIVEL = ("Error: El archivo de coordenadas no tiene la columna 'Nivel ubicacion' (es de una versión "
                      "anterior). Ejecuta primero la ubicación: python -m georef ubicar")
+def ver_mapas(configuracion: Configuracion, area: str = AREA_METROPOLITANA):
+    """
+    Abre `mapas/<area>/mapa.html` en el navegador servido desde `127.0.0.1`, para que se vea el
+    fondo de OpenStreetMap (ver `georef.visor`). Sirve `mapas/` hasta Ctrl+C.
+    """
+    areas = [AREA_METROPOLITANA, *sorted(configuracion.subconjuntos)]
+    if area not in areas:
+        sys.exit(f"Error: El área '{area}' no existe. Áreas disponibles: {', '.join(areas)}.")
+    mapa = archivos.carpeta_mapas(area) / "mapa.html"
+    if not mapa.exists():
+        orden = "python -m georef mapas" if area == AREA_METROPOLITANA else f"python -m georef subconjunto --area {area}"
+        sys.exit(f"Error: No existe '{mapa.as_posix()}'. Genera primero los mapas: {orden}")
+    visor.servir(archivos.CARPETA_MAPAS, f"{area}/mapa.html")
+
+
+# Mapas que generaban las versiones anteriores en la carpeta de un área.
+MAPAS_ANTERIORES = ("individual.html", "clusters.html", "filtrados")
 
 
 class Avance:
@@ -267,35 +284,46 @@ def comparar_consultas(configuracion: Configuracion, muestra: int):
     print(f"Formato configurado ahora: '{parametros.formato_consulta}' (sección [ubicacion]).")
 
 
-def generar_mapas(configuracion: Configuracion):
-    """Genera los mapas del área metropolitana en `mapas/area_metropolitana/` (opción 3 del menú)."""
+def generar_mapas(configuracion: Configuracion, separados=(), sin_municipio: bool = False):
+    """
+    Genera `mapas/area_metropolitana/mapa.html` y los mapas separados pedidos (opción 3 del menú).
+
+    `separados` son vistas de `mapas.VISTAS` o `"todos"`; con `sin_municipio`, los separados de
+    puntos y clusters excluyen el nivel MUNICIPIO. No consulta al proveedor.
+    """
+    _comprobar_sin_municipio(separados, sin_municipio)
     archivos.verificar_nombre_antiguo_coordenadas()
     ruta_archivo = archivos.ruta_coordenadas(AREA_METROPOLITANA)
     if not ruta_archivo.exists():
         sys.exit(MENSAJE_SIN_COORDENADAS)
-    df = pd.read_excel(ruta_archivo, index_col=0)
+    df = _leer_coordenadas(ruta_archivo)
     if "Nivel ubicacion" not in df.columns:
         sys.exit(MENSAJE_SIN_NIVEL)
-    mapas.visualizar(df, archivos.carpeta_mapas(AREA_METROPOLITANA))
+    vistas, omitidas = _vistas(configuracion, AREA_METROPOLITANA, configuracion.area_metropolitana, separados)
+    poligonos = _poligonos_del_area(configuracion, configuracion.area_metropolitana)
+    _dibujar(configuracion, df, AREA_METROPOLITANA, poligonos, vistas, omitidas, sin_municipio)
 
 
-def extraer_subconjunto(configuracion: Configuracion, nombre: str):
+def extraer_subconjunto(configuracion: Configuracion, nombre: str, separados=(), sin_municipio: bool = False):
     """
     Extrae un subconjunto del área metropolitana de las coordenadas ya obtenidas, sin consultar la API.
 
     Escribe `coordenadas/coordenadas_<nombre>.xlsx` (mismas columnas e índice que el archivo del área
-    metropolitana) y sus mapas en `mapas/<nombre>/`.
+    metropolitana) y sus mapas en `mapas/<nombre>/`: `mapa.html` y los separados pedidos, como en
+    `generar_mapas`. Las vistas coloreadas solo se pueden pedir si el subconjunto incluye el
+    municipio con polígonos.
     """
     if nombre not in configuracion.subconjuntos:
         disponibles = ", ".join(sorted(configuracion.subconjuntos)) or "ninguno"
         sys.exit(f"Error: El subconjunto '{nombre}' no está definido en la configuración. "
                  f"Subconjuntos disponibles: {disponibles}.")
+    _comprobar_sin_municipio(separados, sin_municipio)
     archivos.verificar_nombre_antiguo_coordenadas()
     ruta_area = archivos.ruta_coordenadas(AREA_METROPOLITANA)
     if not ruta_area.exists():
         sys.exit(MENSAJE_SIN_COORDENADAS)
 
-    df = pd.read_excel(ruta_area, index_col=0)
+    df = _leer_coordenadas(ruta_area)
     ciudad = configuracion.columnas.ciudad
     if ciudad not in df.columns:
         sys.exit(f"Error: '{ruta_area.as_posix()}' no tiene la columna '{ciudad}'. "
@@ -307,9 +335,71 @@ def extraer_subconjunto(configuracion: Configuracion, nombre: str):
     if subconjunto.empty:
         sys.exit(f"Error: Ningún registro de '{ruta_area.as_posix()}' pertenece al subconjunto '{nombre}' "
                  f"({', '.join(municipios)}).")
+    vistas, omitidas = _vistas(configuracion, nombre, municipios, separados)
+    poligonos = _poligonos_del_area(configuracion, municipios)
 
     ruta_subconjunto = archivos.ruta_coordenadas(nombre)
     subconjunto.to_excel(ruta_subconjunto)
-    mapas.visualizar(subconjunto.copy(), archivos.carpeta_mapas(nombre))
-    print(f"Subconjunto '{nombre}': {len(subconjunto)} registros en '{ruta_subconjunto.as_posix()}' "
-          f"y mapas en '{archivos.carpeta_mapas(nombre).as_posix()}/'.")
+    print(f"Subconjunto '{nombre}': {len(subconjunto)} registros en '{ruta_subconjunto.as_posix()}'.")
+    _dibujar(configuracion, subconjunto, nombre, poligonos, vistas, omitidas, sin_municipio)
+
+
+def _leer_coordenadas(ruta):
+    """Archivo de coordenadas con los códigos de barrio como texto (conservan el cero inicial)."""
+    return pd.read_excel(ruta, index_col=0, dtype={"Codigo barrio": str, "Codigo barrio ubicacion": str})
+
+
+def _comprobar_sin_municipio(separados, sin_municipio):
+    if sin_municipio and not separados:
+        sys.exit("Error: La opción --sin-municipio solo se aplica a los mapas separados: "
+                 "indica también qué separados generar con --separado <vista> (o --separado todos).")
+
+
+def _vistas(configuracion, area, municipios, separados):
+    """
+    Vistas de los separados que se van a generar, en el orden de `mapas.VISTAS`, y las vistas
+    coloreadas omitidas por `todos` en un área sin el municipio con polígonos. Termina el programa
+    si se nombró una vista coloreada para esa área.
+    """
+    pedidas = set(mapas.VISTAS) if "todos" in separados else set(separados)
+    omitidas = []
+    municipio = configuracion.referencia.municipio_con_poligonos
+    if municipio not in municipios:
+        nombradas = [v for v in mapas.VISTAS_COLOREADAS if v in separados]
+        if nombradas:
+            sys.exit(f"Error: Los mapas {', '.join(nombradas)} colorean barrios o comunas de {municipio}, "
+                     f"y el área '{area}' no incluye ese municipio. No se escribió ningún archivo.")
+        omitidas = [v for v in mapas.VISTAS_COLOREADAS if v in pedidas]
+        pedidas -= set(omitidas)
+    return [v for v in mapas.VISTAS if v in pedidas], omitidas
+
+
+def _poligonos_del_area(configuracion, municipios):
+    """Polígonos de Medellín si el área incluye el municipio con polígonos; si no, None."""
+    if configuracion.referencia.municipio_con_poligonos not in municipios:
+        return None
+    try:
+        return Poligonos.cargar(configuracion.referencia.geojson)
+    except ErrorReferencia as error:
+        sys.exit(f"Error: {error}")
+
+
+def _dibujar(configuracion, df, area, poligonos, vistas, omitidas, sin_municipio):
+    """Escribe los mapas del área solo con las columnas de ubicación y el municipio, e informa."""
+    datos = df.rename(columns={configuracion.columnas.ciudad: mapas.COLUMNA_MUNICIPIO})
+    datos = datos[[columna for columna in mapas.COLUMNAS if columna in datos.columns]]
+    carpeta = archivos.carpeta_mapas(area)
+    anteriores = [nombre for nombre in MAPAS_ANTERIORES if (carpeta / nombre).exists()]
+    try:
+        rutas = mapas.generar(datos, carpeta, poligonos, vistas, sin_municipio)
+    except ValueError as error:
+        sys.exit(f"Error: No se pudieron generar los mapas de '{area}': {error}.")
+    print("Mapas escritos:")
+    for ruta in rutas:
+        print(f"  {ruta.as_posix()}")
+    if omitidas:
+        print(f"Los mapas {', '.join(omitidas)} no se generaron: el área '{area}' no incluye "
+              f"{configuracion.referencia.municipio_con_poligonos}, el municipio con polígonos.")
+    if anteriores:
+        print(f"Aviso: en '{carpeta.as_posix()}/' quedan mapas de una versión anterior que ya no se actualizan "
+              f"({', '.join(anteriores)}). Puedes borrarlos.")

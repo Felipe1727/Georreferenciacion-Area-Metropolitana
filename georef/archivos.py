@@ -59,7 +59,7 @@ def estructura_programa():
         CARPETA_ORIGINAL,
         CARPETA_ESTANDARIZADO,
         CARPETA_COORDENADAS,
-        carpeta_mapas(AREA_METROPOLITANA) / "filtrados",
+        carpeta_mapas(AREA_METROPOLITANA),
     ]
     for ruta in rutas:
         ruta.mkdir(parents=True, exist_ok=True)

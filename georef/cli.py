@@ -3,25 +3,29 @@
 `python -m georef <subcomando>` ejecuta una etapa sin hacer preguntas; sin subcomando
 se muestra el menú interactivo. `python main.py` llama a `main()` con los mismos
 argumentos, y su modo heredado `python main.py c` equivale a `ubicar`. Los diagnósticos
-(`consultar-municipios` y `comparar-consultas`) solo existen como subcomandos.
+(`consultar-municipios` y `comparar-consultas`) y `ver-mapas` solo existen como subcomandos.
 """
 import argparse
 import sys
 from pathlib import Path
 
-from georef import archivos, etapas
-from georef.config import RUTA_POR_DEFECTO, ErrorConfiguracion, cargar_configuracion
+from georef import archivos, etapas, mapas
+from georef.config import AREA_METROPOLITANA, RUTA_POR_DEFECTO, ErrorConfiguracion, cargar_configuracion
 
 # Subcomando -> descripción para la ayuda (en el orden en que se listan)
 SUBCOMANDOS = {
     "estandarizar": "estandariza las direcciones del archivo de 'original/'",
     "ubicar": "ubica por niveles (dirección, barrio, comuna o municipio) a los registros del área metropolitana",
-    "mapas": "genera los mapas del área metropolitana",
+    "mapas": "genera el mapa con capas del área metropolitana y, si se piden, mapas separados",
     "subconjunto": "extrae un subconjunto del área metropolitana (coordenadas y mapas) sin usar la API",
     "consultar-municipios": "consulta una vez a OpenCage el punto de los municipios que no lo tienen en la "
                             "configuración",
     "comparar-consultas": "compara en una muestra los dos formatos de consulta a OpenCage (solo cifras agregadas)",
+    "ver-mapas": "abre un mapa en el navegador desde un servidor local, para que se vea el fondo de OpenStreetMap",
 }
+
+# Vistas que aceptan `--separado` y la pregunta del menú.
+VISTAS_SEPARADOS = mapas.VISTAS + ("todos",)
 
 OPCIONES_MENU = {
     "1": "estandarización de direcciones",
@@ -54,6 +58,17 @@ def construir_parser() -> argparse.ArgumentParser:
     subparsers_por_nombre["subconjunto"].add_argument(
         "--area", required=True, metavar="NOMBRE",
         help="nombre del subconjunto definido en la configuración (por ejemplo, medellin)")
+    for nombre in ("mapas", "subconjunto"):
+        subparsers_por_nombre[nombre].add_argument(
+            "--separado", action="append", default=[], choices=VISTAS_SEPARADOS, metavar="VISTA",
+            help="genera además en separados/ el mapa suelto de esa vista; se puede repetir. Vistas: "
+                 f"{', '.join(VISTAS_SEPARADOS)}")
+        subparsers_por_nombre[nombre].add_argument(
+            "--sin-municipio", action="store_true",
+            help="los separados de puntos y clusters excluyen el nivel MUNICIPIO (requiere --separado)")
+    subparsers_por_nombre["ver-mapas"].add_argument(
+        "--area", default=AREA_METROPOLITANA, metavar="NOMBRE",
+        help=f"área cuyo mapa se abre: {AREA_METROPOLITANA} (por defecto) o un subconjunto")
     subparsers_por_nombre["comparar-consultas"].add_argument(
         "--muestra", required=True, type=entero_positivo, metavar="N",
         help="número máximo de direcciones distintas de la muestra (cada una se consulta en los dos formatos)")
@@ -96,13 +111,16 @@ def main(argv=None):
         case "ubicar":
             etapas.ubicar(configuracion, sin_consultas=argumentos.sin_consultas)
         case "mapas":
-            etapas.generar_mapas(configuracion)
+            etapas.generar_mapas(configuracion, argumentos.separado, argumentos.sin_municipio)
         case "subconjunto":
-            etapas.extraer_subconjunto(configuracion, argumentos.area)
+            etapas.extraer_subconjunto(configuracion, argumentos.area, argumentos.separado,
+                                       argumentos.sin_municipio)
         case "consultar-municipios":
             etapas.consultar_municipios(configuracion)
         case "comparar-consultas":
             etapas.comparar_consultas(configuracion, argumentos.muestra)
+        case "ver-mapas":
+            etapas.ver_mapas(configuracion, argumentos.area)
 
 
 def menu(configuracion):
@@ -115,9 +133,10 @@ def menu(configuracion):
         case "2":
             etapas.ubicar(configuracion)
         case "3":
-            etapas.generar_mapas(configuracion)
+            etapas.generar_mapas(configuracion, *preguntar_separados())
         case "4":
-            etapas.extraer_subconjunto(configuracion, seleccionar_subconjunto(configuracion))
+            nombre = seleccionar_subconjunto(configuracion)
+            etapas.extraer_subconjunto(configuracion, nombre, *preguntar_separados())
 
 
 def seleccionar_funcionalidad():
@@ -158,3 +177,23 @@ def seleccionar_subconjunto(configuracion):
         if seleccion.isdigit() and 1 <= int(seleccion) <= len(nombres):
             return nombres[int(seleccion) - 1]
         print("Subconjunto inválido.")
+
+
+def preguntar_separados():
+    """
+    Pregunta qué mapas separados generar (opciones 3 y 4 del menú) y, si se pide alguno, si se
+    excluye el nivel MUNICIPIO. Devuelve (separados, sin_municipio), como `--separado` y
+    `--sin-municipio`.
+    """
+    while True:
+        respuesta = input("Mapas separados para compartir (puntos, clusters, barrios_cantidad, comunas_cantidad "
+                          "o todos; varios separados por comas; Enter para ninguno): ")
+        separados = [vista.strip().lower() for vista in respuesta.split(",") if vista.strip()]
+        invalidos = [vista for vista in separados if vista not in VISTAS_SEPARADOS]
+        if not invalidos:
+            break
+        print(f"Vista inválida: {', '.join(invalidos)}. Las vistas válidas son: {', '.join(VISTAS_SEPARADOS)}.")
+    if not separados:
+        return [], False
+    quitar = input("¿Quitar el nivel MUNICIPIO de los separados de puntos y clusters? (s/N): ").strip().lower()
+    return separados, quitar in ("s", "si", "sí")

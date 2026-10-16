@@ -11,12 +11,7 @@ from georef.config import cargar_configuracion
 
 COORDENADAS_AM = Path("coordenadas") / "coordenadas_area_metropolitana.xlsx"
 COORDENADAS_MEDELLIN = Path("coordenadas") / "coordenadas_medellin.xlsx"
-MAPAS_MEDELLIN = [
-    Path("mapas") / "medellin" / "individual.html",
-    Path("mapas") / "medellin" / "clusters.html",
-    Path("mapas") / "medellin" / "filtrados" / "individual_filtrados.html",
-    Path("mapas") / "medellin" / "filtrados" / "clusters_filtrados.html",
-]
+MAPAS_MEDELLIN = [Path("mapas") / "medellin" / "mapa.html"]
 
 
 @pytest.fixture
@@ -54,7 +49,7 @@ def test_subconjunto_de_medellin(coordenadas_am, configuracion):
 def test_mapas_del_subconjunto(coordenadas_am, configuracion):
     etapas.extraer_subconjunto(configuracion, "medellin")
     assert all(ruta.exists() for ruta in MAPAS_MEDELLIN)
-    assert MAPAS_MEDELLIN[0].read_text().count("L.marker(") == 2
+    assert MAPAS_MEDELLIN[0].read_text().count("L.divIcon(") == 2
 
 
 def test_sin_llave_ni_llamadas_al_proveedor(coordenadas_am, configuracion):
@@ -76,7 +71,7 @@ def test_subconjunto_definido_solo_en_la_configuracion(coordenadas_am, trabajo):
     )
     etapas.extraer_subconjunto(cargar_configuracion(ruta), "norte")
     assert list(pd.read_excel(Path("coordenadas") / "coordenadas_norte.xlsx", index_col=0).index) == [10]
-    assert (Path("mapas") / "norte" / "filtrados" / "clusters_filtrados.html").exists()
+    assert (Path("mapas") / "norte" / "mapa.html").exists()
 
 
 def test_subconjunto_desconocido(coordenadas_am, configuracion):
@@ -121,3 +116,38 @@ def test_coordenadas_sin_nivel(trabajo, configuracion):
         etapas.extraer_subconjunto(configuracion, "medellin")
     assert salida.value.code == etapas.MENSAJE_SIN_NIVEL
     assert not COORDENADAS_MEDELLIN.exists() and not any(ruta.exists() for ruta in MAPAS_MEDELLIN)
+
+
+NORTE = ("[columnas]", '[subconjuntos.norte]\nmunicipios = ["BELLO - ANTIOQUIA"]\n\n[columnas]')
+
+
+def test_mapas_del_subconjunto_con_poligonos(coordenadas_am, configuracion):
+    etapas.extraer_subconjunto(configuracion, "medellin")
+    assert "Contorno de comunas" in MAPAS_MEDELLIN[0].read_text(encoding="utf-8")
+
+
+def test_separados_del_subconjunto(coordenadas_am, configuracion):
+    etapas.extraer_subconjunto(configuracion, "medellin", ["puntos"])
+    assert (Path("mapas") / "medellin" / "separados" / "puntos.html").exists()
+
+
+def test_subconjunto_sin_medellin_sin_poligonos(coordenadas_am, trabajo):
+    etapas.extraer_subconjunto(cargar_configuracion(escribir_configuracion(trabajo / "otra.toml", NORTE)), "norte")
+    assert "Contorno de comunas" not in (Path("mapas") / "norte" / "mapa.html").read_text(encoding="utf-8")
+
+
+def test_vista_coloreada_pedida_para_otra_area(coordenadas_am, trabajo):
+    configuracion = cargar_configuracion(escribir_configuracion(trabajo / "otra.toml", NORTE))
+    with pytest.raises(SystemExit) as salida:
+        etapas.extraer_subconjunto(configuracion, "norte", ["barrios_cantidad"])
+    assert "barrios_cantidad" in salida.value.code and "MEDELLIN - ANTIOQUIA" in salida.value.code
+    assert not (Path("coordenadas") / "coordenadas_norte.xlsx").exists()
+    assert not (Path("mapas") / "norte").exists()
+
+
+def test_todos_en_un_area_sin_poligonos(coordenadas_am, trabajo, capsys):
+    configuracion = cargar_configuracion(escribir_configuracion(trabajo / "otra.toml", NORTE))
+    etapas.extraer_subconjunto(configuracion, "norte", ["todos"])
+    separados = Path("mapas") / "norte" / "separados"
+    assert sorted(p.name for p in separados.iterdir()) == ["clusters.html", "puntos.html"]
+    assert "no se generaron" in capsys.readouterr().out

@@ -37,9 +37,10 @@ def test_nombres_por_area():
 
 def test_estructura_en_directorio_limpio(en_tmp):
     archivos.estructura_programa()
-    for directorio in ("original", "estandarizado", "coordenadas", "mapas/area_metropolitana/filtrados"):
+    for directorio in ("original", "estandarizado", "coordenadas", "mapas/area_metropolitana"):
         assert Path(directorio).is_dir()
     assert not Path("llave").exists()
+    assert not Path("mapas/area_metropolitana/filtrados").exists()
 
 
 @pytest.mark.parametrize("bloqueo", [".~lock.base.xlsx#", "~$base.xlsx", ".oculto"])

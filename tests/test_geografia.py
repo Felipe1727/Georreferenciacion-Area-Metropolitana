@@ -1,4 +1,5 @@
 """Geometrías del GeoJSON real para la ubicación por niveles (georef.geografia)."""
+import json
 import os
 from pathlib import Path
 
@@ -75,6 +76,44 @@ def test_recuadro_en_orden_de_opencage(poligonos):
     for codigo in poligonos.codigos:
         latitud, longitud = poligonos.punto_barrio(codigo)
         assert min_lat <= latitud <= max_lat and min_lng <= longitud <= max_lng
+
+
+def coordenadas_de(geometria):
+    """Todos los pares (lng, lat) de un Polygon o MultiPolygon en formato GeoJSON."""
+    poligonos = [geometria["coordinates"]] if geometria["type"] == "Polygon" else geometria["coordinates"]
+    return [punto for poligono in poligonos for anillo in poligono for punto in anillo]
+
+
+def test_geojson_para_dibujar(poligonos):
+    barrios, comunas = poligonos.geojson("barrios"), poligonos.geojson("comunas")
+    assert len(barrios["features"]) == 349 and len(comunas["features"]) == 21
+    for coleccion in (barrios, comunas):
+        for feature in coleccion["features"]:
+            for lng, lat in coordenadas_de(feature["geometry"]):
+                assert 6.0 < lat < 6.5 and -75.8 < lng < -75.4
+    propiedades = {f["properties"]["codigo"]: f["properties"] for f in barrios["features"]}
+    assert set(propiedades) == set(poligonos.codigos)
+    codigo = next(c for c in poligonos.codigos if c.startswith("0"))
+    assert isinstance(propiedades[codigo]["codigo"], str)  # con su cero inicial
+    assert (propiedades[codigo]["nombre"], propiedades[codigo]["comuna"]) == poligonos.nombre_barrio(codigo)
+    assert {f["properties"]["nombre"] for f in comunas["features"]} == set(poligonos.comunas)
+
+
+def test_geojson_simplificado(poligonos):
+    assert len(json.dumps(poligonos.geojson("barrios"))) < 1_000_000
+    assert len(json.dumps(poligonos.geojson("comunas"))) < 300_000
+    assert poligonos.geojson("barrios") is poligonos.geojson("barrios")  # calculado una sola vez
+    with pytest.raises(ValueError):
+        poligonos.geojson("veredas")
+
+
+def test_limites_contienen_el_recuadro(poligonos):
+    (min_lat, min_lng), (max_lat, max_lng) = poligonos.limites_wgs84()
+    r_min_lng, r_min_lat, r_max_lng, r_max_lat = map(float, poligonos.recuadro().split(","))
+    # El recuadro redondea hacia fuera a 5 decimales; los límites son los exactos.
+    assert r_min_lat <= min_lat < max_lat <= r_max_lat and r_min_lng <= min_lng < max_lng <= r_max_lng
+    assert all(abs(a - b) < 1e-5 for a, b in ((min_lat, r_min_lat), (max_lat, r_max_lat),
+                                              (min_lng, r_min_lng), (max_lng, r_max_lng)))
 
 
 def test_archivo_inexistente(tmp_path):

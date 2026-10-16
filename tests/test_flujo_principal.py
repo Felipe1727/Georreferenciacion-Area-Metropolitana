@@ -58,16 +58,15 @@ def test_opcion_2_ubica_el_area_metropolitana(con_puntos, ejecutar_main, llave_f
 
 def test_opcion_3_sin_coordenadas_termina(directorio_trabajo, ejecutar_main):
     with pytest.raises(SystemExit) as salida:
-        ejecutar_main(3)
+        ejecutar_main(["3", ""])
     assert salida.value.code == "Error: Necesitas primero procesar las coordenadas."
 
 
 def test_opcion_3_genera_mapas(directorio_trabajo, ejecutar_main):
     Path("coordenadas").mkdir(exist_ok=True)
     pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5], "Nivel ubicacion": ["BARRIO"]}).to_excel(COORDENADAS)
-    ejecutar_main(3)
-    assert (MAPAS / "individual.html").exists()
-    assert (MAPAS / "filtrados" / "clusters_filtrados.html").exists()
+    ejecutar_main(["3", ""])
+    assert (MAPAS / "mapa.html").exists()
 
 
 def test_modo_c_ubica_con_llave_del_entorno(con_puntos, ejecutar_main, llave_falsa, cliente):

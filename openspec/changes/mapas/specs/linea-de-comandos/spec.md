@@ -1,0 +1,93 @@
+# Spec Delta
+
+## MODIFIED Requirements
+
+### Requirement: Subcomandos no interactivos
+El programa SHALL ejecutarse como `python -m georef <subcomando>` con los subcomandos `estandarizar`, `ubicar` (con `--sin-consultas`), `mapas`, `subconjunto --area <nombre>`, `consultar-municipios`, `comparar-consultas --muestra <N>` y `ver-mapas` (con `--area <nombre>`). `mapas` y `subconjunto` aceptan `--separado <vista>` (repetible) y `--sin-municipio`. Cada subcomando ejecuta solo su operación, sin menú ni preguntas por consola, y termina con código 0 si la operación se completa.
+
+#### Scenario: Estandarizar
+- **WHEN** `original/` contiene un archivo de entrada y el usuario ejecuta `python -m georef estandarizar`
+- **THEN** el sistema genera los cuatro archivos de `estandarizado/` sin pedir ninguna entrada por consola
+
+#### Scenario: Ubicar
+- **WHEN** existen los archivos de `estandarizado/`, la llave está definida y el usuario ejecuta `python -m georef ubicar`
+- **THEN** el sistema ubica a los registros del área metropolitana igual que la opción 2 del menú
+
+#### Scenario: Geocodificar
+- **WHEN** el usuario ejecuta `python -m georef geocodificar`, el nombre anterior de la ubicación
+- **THEN** el sistema termina con código distinto de cero, muestra los subcomandos válidos, entre ellos `ubicar`, y no hace ninguna consulta
+
+#### Scenario: Mejorar y mapas
+- **WHEN** el usuario ejecuta `python -m georef mejorar` o `python -m georef mapas`
+- **THEN** `mejorar` termina con código distinto de cero y muestra los subcomandos válidos sin hacer ninguna consulta, y `mapas` hace lo mismo que la opción 3 del menú cuando no se elige ningún separado
+
+#### Scenario: Mapas con separados
+- **WHEN** el usuario ejecuta `python -m georef mapas --separado clusters --sin-municipio`
+- **THEN** el sistema genera `mapa.html` y `separados/clusters_sin_municipio.html` sin hacer preguntas por consola
+
+#### Scenario: Subconjunto
+- **WHEN** el usuario ejecuta `python -m georef subconjunto --area medellin`
+- **THEN** el sistema extrae el subconjunto `medellin`
+
+#### Scenario: Diagnóstico de formatos
+- **WHEN** el usuario ejecuta `python -m georef comparar-consultas --muestra 50`
+- **THEN** el sistema compara los dos formatos de consulta sobre una muestra de hasta 50 consultas
+
+#### Scenario: Estandarizar sin archivo de entrada
+- **WHEN** `original/` está vacío y el usuario ejecuta `python -m georef estandarizar`
+- **THEN** el sistema termina con un mensaje que pide colocar el archivo en `original/`, sin abrir ningún diálogo gráfico
+
+### Requirement: Menú interactivo sin argumentos
+Si se ejecuta sin subcomando, el programa SHALL mostrar el menú interactivo con cuatro opciones: 1 estandarización, 2 ubicación, 3 mapas y 4 extracción de un subconjunto. La opción 4 lista los subconjuntos configurados y pide elegir uno. Las opciones 3 y 4 preguntan qué mapas separados generar. Una opción inválida se vuelve a pedir. Los diagnósticos (`consultar-municipios` y `comparar-consultas`) y `ver-mapas` solo están disponibles como subcomandos.
+
+#### Scenario: Opción de estandarización con `original/` vacío
+- **WHEN** `original/` está vacío y el usuario elige la opción 1 del menú
+- **THEN** el sistema abre el diálogo para elegir el archivo de entrada, como hasta ahora
+
+#### Scenario: Opciones que no leen el archivo de entrada
+- **WHEN** `original/` está vacío y el usuario elige la opción 3 del menú y no pide ningún separado
+- **THEN** el sistema genera los mapas sin abrir el diálogo de selección de archivo
+
+#### Scenario: Separados desde el menú
+- **WHEN** el usuario elige la opción 3, escribe `puntos, clusters` como separados y responde que sí a quitar el nivel `MUNICIPIO`
+- **THEN** el sistema hace lo mismo que `python -m georef mapas --separado puntos --separado clusters --sin-municipio`
+
+#### Scenario: Sin separados desde el menú
+- **WHEN** el usuario elige la opción 3 y pulsa Enter en la pregunta de los separados
+- **THEN** el sistema genera solo `mapa.html` y no pregunta por el nivel `MUNICIPIO`
+
+#### Scenario: Separado inválido en el menú
+- **WHEN** el usuario elige la opción 3 y escribe `calor` como separado
+- **THEN** el sistema indica las vistas válidas y vuelve a hacer la pregunta
+
+#### Scenario: Ubicación desde el menú
+- **WHEN** el usuario elige la opción 2 del menú
+- **THEN** el sistema hace lo mismo que `python -m georef ubicar`
+
+#### Scenario: Extraer un subconjunto desde el menú
+- **WHEN** el usuario elige la opción 4, después el subconjunto `medellin` de la lista y pulsa Enter en la pregunta de los separados
+- **THEN** el sistema extrae el subconjunto `medellin`
+
+#### Scenario: Opción inválida
+- **WHEN** el usuario escribe `5` en el menú
+- **THEN** el sistema indica que la opción es inválida y la vuelve a pedir
+
+### Requirement: Argumentos inválidos y ayuda
+Ante un subcomando u opción desconocidos, o si falta un argumento obligatorio, el sistema MUST terminar con código distinto de cero, mostrar el uso correcto y no ejecutar ninguna etapa. `--help` SHALL listar los subcomandos con una descripción en español.
+
+#### Scenario: Subcomando desconocido
+- **WHEN** el usuario ejecuta `python -m georef exportar`
+- **THEN** el sistema termina con código distinto de cero, muestra los subcomandos válidos y no crea ni modifica archivos de salida
+
+#### Scenario: Falta el subconjunto
+- **WHEN** el usuario ejecuta `python -m georef subconjunto` sin `--area`
+- **THEN** el sistema termina con código distinto de cero e indica que falta `--area`
+
+#### Scenario: Muestra no válida
+- **WHEN** el usuario ejecuta `python -m georef comparar-consultas --muestra 0`
+- **THEN** el sistema termina con código distinto de cero e indica que la muestra debe ser un entero positivo
+
+#### Scenario: Ayuda
+- **WHEN** el usuario ejecuta `python -m georef --help`
+- **THEN** la salida lista `estandarizar`, `ubicar`, `mapas`, `subconjunto`, `consultar-municipios`, `comparar-consultas` y `ver-mapas` con su descripción
+

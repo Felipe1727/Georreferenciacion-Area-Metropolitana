@@ -1,5 +1,6 @@
 """Etapas del proceso: separación por área (specs/areas-geograficas), columnas y municipios
 configurables (specs/configuracion) y lectura de coordenadas por su nombre nuevo."""
+import re
 import sys
 from pathlib import Path
 
@@ -10,9 +11,11 @@ from opencage.geocoder import RateLimitExceededError
 from conftest import escribir_configuracion, resultado_api, seccion_puntos
 from georef import archivos, etapas
 from georef.config import cargar_configuracion
+from georef.geografia import Poligonos
 
 COORDENADAS = Path("coordenadas") / "coordenadas_area_metropolitana.xlsx"
 COORDENADAS_ANTIGUO = Path("coordenadas") / "coordenadas.xlsx"
+MAPAS_AM = Path("mapas") / "area_metropolitana"
 
 
 @pytest.fixture
@@ -77,7 +80,7 @@ def test_nombre_antiguo_detiene_la_etapa(trabajo, configuracion, llave_falsa, cl
     assert cliente.consultas == []
     assert not COORDENADAS.exists()
     assert COORDENADAS_ANTIGUO.read_bytes() == contenido
-    assert not (Path("mapas") / "area_metropolitana" / "individual.html").exists()
+    assert not (Path("mapas") / "area_metropolitana" / "mapa.html").exists()
 
 
 def test_mapas_sin_coordenadas(trabajo, configuracion):
@@ -89,8 +92,7 @@ def test_mapas_sin_coordenadas(trabajo, configuracion):
 def test_mapas_del_area_metropolitana(trabajo, configuracion):
     pd.DataFrame({"Latitud": [6.2], "Longitud": [-75.5], "Nivel ubicacion": ["BARRIO"]}).to_excel(COORDENADAS)
     etapas.generar_mapas(configuracion)
-    assert (Path("mapas") / "area_metropolitana" / "individual.html").exists()
-    assert (Path("mapas") / "area_metropolitana" / "filtrados" / "clusters_filtrados.html").exists()
+    assert (Path("mapas") / "area_metropolitana" / "mapa.html").exists()
 
 
 def test_mapas_con_coordenadas_de_formato_anterior(trabajo, configuracion):
@@ -98,17 +100,18 @@ def test_mapas_con_coordenadas_de_formato_anterior(trabajo, configuracion):
     with pytest.raises(SystemExit) as salida:
         etapas.generar_mapas(configuracion)
     assert salida.value.code == etapas.MENSAJE_SIN_NIVEL and "ubicar" in salida.value.code
-    assert not (Path("mapas") / "area_metropolitana" / "individual.html").exists()
+    assert not (Path("mapas") / "area_metropolitana" / "mapa.html").exists()
 
 
 def test_mapas_tras_ubicar(estandarizado, llave_falsa, cliente):
     etapas.ubicar(estandarizado)
     etapas.generar_mapas(estandarizado)
-    niveles = leer_coordenadas()["Nivel ubicacion"]
-    individual = (Path("mapas") / "area_metropolitana" / "individual.html").read_text()
-    filtrado = (Path("mapas") / "area_metropolitana" / "filtrados" / "individual_filtrados.html").read_text()
-    assert individual.count("L.marker(") == len(niveles)
-    assert filtrado.count("L.marker(") == (niveles != "MUNICIPIO").sum()
+    coordenadas = leer_coordenadas()
+    for ruta in (COORDENADAS, Path("coordenadas") / "cache_consultas.csv", Path("coordenadas") / "registro_consultas.csv"):
+        assert ruta.exists()
+    mapa = (MAPAS_AM / "mapa.html").read_text()
+    # Un círculo por punto distinto de cada nivel.
+    assert mapa.count("L.divIcon(") == len(coordenadas.groupby(["Nivel ubicacion", "Latitud", "Longitud"]))
 
 
 def test_archivo_de_referencia_inexistente(trabajo):
@@ -311,3 +314,62 @@ def test_ubicacion_sin_consultas(estandarizado, cliente):
     assert cliente.consultas == [] and cliente.llaves == []
     assert set(coordenadas["Resultado consulta"]) <= {"PENDIENTE", "SIN_CONSULTA"}
     assert coordenadas["Latitud"].notna().all()
+
+
+# Mapas (specs/mapas y specs/archivos-de-salida)
+
+def coordenadas_sinteticas(codigo=None):
+    pd.DataFrame({"Ciudad Residencia": ["MEDELLIN - ANTIOQUIA", "BELLO - ANTIOQUIA"],
+                  "Direccion de residencia": ["CL 1 #2-3", "CR 4 #5-6"],
+                  "Latitud": [6.25, 6.33], "Longitud": [-75.58, -75.55], "Nivel ubicacion": ["BARRIO", "MUNICIPIO"],
+                  "Codigo barrio ubicacion": [codigo, None]}).to_excel(COORDENADAS)
+
+
+def test_mapas_anteriores_presentes(trabajo, configuracion, capsys):
+    coordenadas_sinteticas()
+    (MAPAS_AM / "individual.html").write_text("anterior", encoding="utf-8")
+    (MAPAS_AM / "filtrados").mkdir()
+    etapas.generar_mapas(configuracion)
+    salida = capsys.readouterr().out
+    assert "ya no se actualizan" in salida and "individual.html" in salida and "filtrados" in salida
+    assert (MAPAS_AM / "individual.html").read_text(encoding="utf-8") == "anterior"
+    assert (MAPAS_AM / "filtrados").is_dir()
+
+
+def test_sin_aviso_sin_mapas_anteriores(trabajo, configuracion, capsys):
+    coordenadas_sinteticas()
+    etapas.generar_mapas(configuracion)
+    salida = capsys.readouterr().out
+    assert "ya no se actualizan" not in salida and "mapas/area_metropolitana/mapa.html" in salida
+
+
+def test_opcion_sin_municipio_sin_separados(trabajo, configuracion):
+    coordenadas_sinteticas()
+    with pytest.raises(SystemExit) as salida:
+        etapas.generar_mapas(configuracion, sin_municipio=True)
+    assert "--separado" in salida.value.code
+    assert not (MAPAS_AM / "mapa.html").exists()
+
+
+def test_todos_los_separados_sin_municipio(trabajo, configuracion):
+    coordenadas_sinteticas()
+    etapas.generar_mapas(configuracion, ["todos"], sin_municipio=True)
+    assert sorted(p.name for p in (MAPAS_AM / "separados").iterdir()) == [
+        "barrios_cantidad.html", "clusters_sin_municipio.html", "comunas_cantidad.html", "puntos_sin_municipio.html"]
+
+
+def test_codigo_de_barrio_con_cero_inicial_en_la_capa_coloreada(trabajo, configuracion):
+    poligonos = Poligonos.cargar(configuracion.referencia.geojson)
+    codigo = next(c for c in poligonos.codigos if c.startswith("0"))
+    coordenadas_sinteticas(codigo)
+    etapas.generar_mapas(configuracion, ["barrios_cantidad"])
+    mapa = (MAPAS_AM / "separados" / "barrios_cantidad.html").read_text(encoding="utf-8")
+    assert re.search(rf'"codigo": "{codigo}", [^}}]*"registros": 1\b', mapa)
+
+
+def test_los_mapas_no_contienen_otras_columnas(trabajo, configuracion):
+    coordenadas_sinteticas()
+    etapas.generar_mapas(configuracion, ["todos"])
+    for ruta in MAPAS_AM.rglob("*.html"):
+        contenido = ruta.read_text(encoding="utf-8")
+        assert "CL 1 #2-3" not in contenido and "CR 4 #5-6" not in contenido

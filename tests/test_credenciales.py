@@ -117,9 +117,10 @@ def test_estandarizacion_no_exige_credencial(directorio_trabajo, ejecutar_main):
 
 def test_primera_ejecucion_crea_directorios_sin_llave(directorio_trabajo, ejecutar_main):
     ejecutar_main(1)
-    for directorio in ("original", "estandarizado", "coordenadas", Path("mapas") / "area_metropolitana" / "filtrados"):
+    for directorio in ("original", "estandarizado", "coordenadas", Path("mapas") / "area_metropolitana"):
         assert Path(directorio).is_dir()
     assert not Path("llave").exists()
+    assert not (Path("mapas") / "area_metropolitana" / "filtrados").exists()
 
 
 def test_plantilla_dotenv_sin_llave():
@@ -135,6 +136,19 @@ def test_dotenv_ignorado_y_plantilla_versionable():
 
     assert ignorado(".env")
     assert not ignorado(".env.example")
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git no disponible")
+def test_artefactos_de_openspec_con_el_nombre_de_un_directorio_de_datos():
+    def ignorado(ruta):
+        return subprocess.run(["git", "check-ignore", "-q", "--no-index", ruta], cwd=RAIZ_REPO).returncode == 0
+
+    assert not ignorado("openspec/changes/mapas/proposal.md")
+    assert not ignorado("openspec/specs/mapas/spec.md")
+    assert ignorado("mapas/area_metropolitana/mapa.html")
+    assert ignorado("notebooks/mapas/mapa.html")
+    assert all(ignorado(f"{carpeta}/archivo.xlsx") for carpeta in ("original", "estandarizado", "coordenadas", "llave"))
+    assert not ignorado("data/limite_barrio_vereda_cata.geojson")
 
 
 def test_variable_vacia_en_comparar_consultas(con_estandarizacion, ejecutar_main, cliente, monkeypatch):

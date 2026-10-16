@@ -31,13 +31,76 @@
             <h2>API Documentation</h2>
                 <ul class="memberlist">
             <li>
-                    <a class="variable" href="#CENTRO_MAPA">CENTRO_MAPA</a>
+                    <a class="variable" href="#VISTAS">VISTAS</a>
             </li>
             <li>
-                    <a class="variable" href="#ZOOM_INICIAL">ZOOM_INICIAL</a>
+                    <a class="variable" href="#VISTAS_COLOREADAS">VISTAS_COLOREADAS</a>
             </li>
             <li>
-                    <a class="function" href="#visualizar">visualizar</a>
+                    <a class="variable" href="#VISTAS_DE_PUNTOS">VISTAS_DE_PUNTOS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#CARPETA_SEPARADOS">CARPETA_SEPARADOS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#COLUMNA_MUNICIPIO">COLUMNA_MUNICIPIO</a>
+            </li>
+            <li>
+                    <a class="variable" href="#COLUMNAS">COLUMNAS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#COLORES_NIVEL">COLORES_NIVEL</a>
+            </li>
+            <li>
+                    <a class="variable" href="#DIAMETRO_MINIMO">DIAMETRO_MINIMO</a>
+            </li>
+            <li>
+                    <a class="variable" href="#DIAMETRO_MAXIMO">DIAMETRO_MAXIMO</a>
+            </li>
+            <li>
+                    <a class="variable" href="#ZOOM_MAXIMO">ZOOM_MAXIMO</a>
+            </li>
+            <li>
+                    <a class="variable" href="#CLUSTERS">CLUSTERS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#CLUSTERS_SIN_MUNICIPIO">CLUSTERS_SIN_MUNICIPIO</a>
+            </li>
+            <li>
+                    <a class="variable" href="#CONTORNO_COMUNAS">CONTORNO_COMUNAS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#CONTORNO_BARRIOS">CONTORNO_BARRIOS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#BARRIOS_CANTIDAD">BARRIOS_CANTIDAD</a>
+            </li>
+            <li>
+                    <a class="variable" href="#COMUNAS_CANTIDAD">COMUNAS_CANTIDAD</a>
+            </li>
+            <li>
+                    <a class="variable" href="#COLOR_SIN_REGISTROS">COLOR_SIN_REGISTROS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#COLOREADAS">COLOREADAS</a>
+            </li>
+            <li>
+                    <a class="function" href="#mapa_con_capas">mapa_con_capas</a>
+            </li>
+            <li>
+                    <a class="function" href="#mapa_separado">mapa_separado</a>
+            </li>
+            <li>
+                    <a class="function" href="#nombre_separado">nombre_separado</a>
+            </li>
+            <li>
+                    <a class="function" href="#generar">generar</a>
+            </li>
+            <li>
+                    <a class="function" href="#diametro">diametro</a>
+            </li>
+            <li>
+                    <a class="function" href="#cantidades">cantidades</a>
             </li>
     </ul>
 
@@ -55,176 +118,736 @@
                     <h1 class="modulename">
 <a href="./../georef.html">georef</a><wbr>.mapas    </h1>
 
-                        <div class="docstring"><p>Mapas HTML de las coordenadas con folium.</p>
+                        <div class="docstring"><p>Mapas HTML de las coordenadas de un área con folium.</p>
 
-<p>La lógica es la heredada de <code>main.py</code>, salvo el filtrado, que usa el nivel de ubicación; el
-cambio <code>mapas</code> sustituye el centro y el zoom fijos.</p>
+<p><code><a href="#mapa_con_capas">mapa_con_capas</a></code> construye el mapa principal de un área: una capa de puntos por nivel de
+ubicación, dos capas de clusters y, si se dan los polígonos de Medellín, sus contornos y
+capas coloreadas. Los registros que comparten punto y nivel se dibujan como un solo círculo
+con el número de registros. <code><a href="#mapa_separado">mapa_separado</a></code> construye una sola vista (<code><a href="#VISTAS">VISTAS</a></code>) para
+compartirla como archivo suelto, y <code><a href="#generar">generar</a></code> escribe <code>mapa.html</code> y los separados pedidos.</p>
+
+<p>Solo se usan las columnas de <code><a href="#COLUMNAS">COLUMNAS</a></code>: ningún otro dato de los registros llega a los mapas.</p>
 </div>
 
                         <input id="mod-mapas-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 
                         <label class="view-source-button" for="mod-mapas-view-source"><span>View Source</span></label>
 
-                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos"> 1</span></a><span class="sd">&quot;&quot;&quot;Mapas HTML de las coordenadas con folium.</span>
-</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a>
-</span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="sd">La lógica es la heredada de `main.py`, salvo el filtrado, que usa el nivel de ubicación; el</span>
-</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="sd">cambio `mapas` sustituye el centro y el zoom fijos.</span>
-</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">folium</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">folium.plugins</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastMarkerCluster</span>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>
-</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">georef.ubicacion</span><span class="w"> </span><span class="kn">import</span> <span class="n">MUNICIPIO</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="c1"># Vista inicial de los mapas (centro de Medellín).</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="n">CENTRO_MAPA</span> <span class="o">=</span> <span class="p">[</span><span class="mf">6.2464186</span><span class="p">,</span> <span class="o">-</span><span class="mf">75.5942503</span><span class="p">]</span>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a><span class="n">ZOOM_INICIAL</span> <span class="o">=</span> <span class="mi">12</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>
-</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a><span class="k">def</span><span class="w"> </span><span class="nf">visualizar</span><span class="p">(</span><span class="n">df</span> <span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">carpeta</span><span class="p">):</span>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">    Genera y guarda mapas HTML con marcadores y clusters basados en coordenadas del DataFrame.</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a><span class="sd">    Escribe `individual.html` y `clusters.html` en `carpeta`, y en `carpeta/filtrados/` las</span>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="sd">    versiones sin los registros ubicados solo a nivel de municipio. Crea las carpetas si no existen.</span>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a><span class="sd">    Args:</span>
-</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a><span class="sd">        df (pd.DataFrame): DataFrame con columnas &#39;Latitud&#39;, &#39;Longitud&#39; y &#39;Nivel ubicacion&#39;.</span>
-</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a><span class="sd">        carpeta: Carpeta de los mapas del área (por ejemplo, `mapas/area_metropolitana`).</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a>    <span class="n">carpeta</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">carpeta</span><span class="p">)</span>
-</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a>    <span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a>    <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">,</span> <span class="s1">&#39;Longitud&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a>    <span class="n">latitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>    <span class="n">longitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">latitudes</span><span class="p">,</span> <span class="n">longitudes</span><span class="p">))</span>
-</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>
-</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a>    <span class="n">mapa_marcadores</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a>        <span class="n">coordenada</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">])</span>
-</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a>        <span class="n">folium</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span><span class="n">coordenada</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_marcadores</span><span class="p">)</span>
-</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a>
-</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a>    <span class="n">mapa_clusters</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a>
-</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>    <span class="n">FastMarkerCluster</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_clusters</span><span class="p">)</span>
-</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a>
-</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>    <span class="n">mapa_marcadores</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s1">&#39;individual.html&#39;</span><span class="p">)</span>
-</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a>    <span class="n">mapa_clusters</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s1">&#39;clusters.html&#39;</span><span class="p">)</span>
-</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a>
-</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a>    <span class="n">df_filtrado</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">MUNICIPIO</span><span class="p">]</span>
-</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a>    <span class="n">latitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df_filtrado</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a>    <span class="n">longitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df_filtrado</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">latitudes</span><span class="p">,</span> <span class="n">longitudes</span><span class="p">))</span>
-</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a>
-</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>    <span class="n">mapa_marcadores</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a>    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df_filtrado</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a>        <span class="n">coordenada</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_filtrado</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">],</span> <span class="n">df_filtrado</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">])</span>
-</span><span id="L-57"><a href="#L-57"><span class="linenos">57</span></a>        <span class="n">folium</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span><span class="n">coordenada</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_marcadores</span><span class="p">)</span>
-</span><span id="L-58"><a href="#L-58"><span class="linenos">58</span></a>
-</span><span id="L-59"><a href="#L-59"><span class="linenos">59</span></a>    <span class="n">mapa_clusters</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="L-60"><a href="#L-60"><span class="linenos">60</span></a>
-</span><span id="L-61"><a href="#L-61"><span class="linenos">61</span></a>    <span class="n">FastMarkerCluster</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_clusters</span><span class="p">)</span>
-</span><span id="L-62"><a href="#L-62"><span class="linenos">62</span></a>
-</span><span id="L-63"><a href="#L-63"><span class="linenos">63</span></a>    <span class="n">mapa_marcadores</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span> <span class="o">/</span> <span class="s1">&#39;individual_filtrados.html&#39;</span><span class="p">)</span>
-</span><span id="L-64"><a href="#L-64"><span class="linenos">64</span></a>    <span class="n">mapa_clusters</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span> <span class="o">/</span> <span class="s1">&#39;clusters_filtrados.html&#39;</span><span class="p">)</span>
+                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos">  1</span></a><span class="sd">&quot;&quot;&quot;Mapas HTML de las coordenadas de un área con folium.</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos">  2</span></a>
+</span><span id="L-3"><a href="#L-3"><span class="linenos">  3</span></a><span class="sd">`mapa_con_capas` construye el mapa principal de un área: una capa de puntos por nivel de</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos">  4</span></a><span class="sd">ubicación, dos capas de clusters y, si se dan los polígonos de Medellín, sus contornos y</span>
+</span><span id="L-5"><a href="#L-5"><span class="linenos">  5</span></a><span class="sd">capas coloreadas. Los registros que comparten punto y nivel se dibujan como un solo círculo</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos">  6</span></a><span class="sd">con el número de registros. `mapa_separado` construye una sola vista (`VISTAS`) para</span>
+</span><span id="L-7"><a href="#L-7"><span class="linenos">  7</span></a><span class="sd">compartirla como archivo suelto, y `generar` escribe `mapa.html` y los separados pedidos.</span>
+</span><span id="L-8"><a href="#L-8"><span class="linenos">  8</span></a>
+</span><span id="L-9"><a href="#L-9"><span class="linenos">  9</span></a><span class="sd">Solo se usan las columnas de `COLUMNAS`: ningún otro dato de los registros llega a los mapas.</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-11"><a href="#L-11"><span class="linenos"> 11</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos"> 12</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">html</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos"> 13</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos"> 14</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos"> 15</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos"> 16</span></a>
+</span><span id="L-17"><a href="#L-17"><span class="linenos"> 17</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">branca.colormap</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos"> 18</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">folium</span>
+</span><span id="L-19"><a href="#L-19"><span class="linenos"> 19</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos"> 20</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">folium.plugins</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastMarkerCluster</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos"> 21</span></a>
+</span><span id="L-22"><a href="#L-22"><span class="linenos"> 22</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">georef.ubicacion</span><span class="w"> </span><span class="kn">import</span> <span class="n">BARRIO</span><span class="p">,</span> <span class="n">COMUNA</span><span class="p">,</span> <span class="n">DIRECCION</span><span class="p">,</span> <span class="n">MUNICIPIO</span><span class="p">,</span> <span class="n">NIVELES</span><span class="p">,</span> <span class="n">RESULTADOS</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos"> 23</span></a>
+</span><span id="L-24"><a href="#L-24"><span class="linenos"> 24</span></a><span class="c1"># Vistas de los mapas separados; las coloreadas necesitan los polígonos de Medellín.</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos"> 25</span></a><span class="n">VISTAS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;puntos&quot;</span><span class="p">,</span> <span class="s2">&quot;clusters&quot;</span><span class="p">,</span> <span class="s2">&quot;barrios_cantidad&quot;</span><span class="p">,</span> <span class="s2">&quot;comunas_cantidad&quot;</span><span class="p">)</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos"> 26</span></a><span class="n">VISTAS_COLOREADAS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;barrios_cantidad&quot;</span><span class="p">,</span> <span class="s2">&quot;comunas_cantidad&quot;</span><span class="p">)</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos"> 27</span></a><span class="c1"># Vistas a las que afecta `sin_municipio`.</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a><span class="n">VISTAS_DE_PUNTOS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;puntos&quot;</span><span class="p">,</span> <span class="s2">&quot;clusters&quot;</span><span class="p">)</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a><span class="n">CARPETA_SEPARADOS</span> <span class="o">=</span> <span class="s2">&quot;separados&quot;</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos"> 30</span></a>
+</span><span id="L-31"><a href="#L-31"><span class="linenos"> 31</span></a><span class="c1"># Columna con el municipio del registro (la etapa renombra a ella la columna de ciudad).</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos"> 32</span></a><span class="n">COLUMNA_MUNICIPIO</span> <span class="o">=</span> <span class="s2">&quot;Municipio&quot;</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos"> 33</span></a><span class="n">COLUMNAS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Latitud&quot;</span><span class="p">,</span> <span class="s2">&quot;Longitud&quot;</span><span class="p">,</span> <span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">,</span> <span class="s2">&quot;Resultado consulta&quot;</span><span class="p">,</span> <span class="s2">&quot;Barrio ubicacion&quot;</span><span class="p">,</span>
+</span><span id="L-34"><a href="#L-34"><span class="linenos"> 34</span></a>            <span class="s2">&quot;Codigo barrio ubicacion&quot;</span><span class="p">,</span> <span class="s2">&quot;Comuna ubicacion&quot;</span><span class="p">,</span> <span class="n">COLUMNA_MUNICIPIO</span><span class="p">]</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos"> 35</span></a>
+</span><span id="L-36"><a href="#L-36"><span class="linenos"> 36</span></a><span class="c1"># Color del círculo y del número de cada nivel (paleta Okabe-Ito, distinguible con daltonismo).</span>
+</span><span id="L-37"><a href="#L-37"><span class="linenos"> 37</span></a><span class="n">COLORES_NIVEL</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos"> 38</span></a>    <span class="n">DIRECCION</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;#009E73&quot;</span><span class="p">,</span> <span class="s2">&quot;#ffffff&quot;</span><span class="p">),</span>
+</span><span id="L-39"><a href="#L-39"><span class="linenos"> 39</span></a>    <span class="n">BARRIO</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;#0072B2&quot;</span><span class="p">,</span> <span class="s2">&quot;#ffffff&quot;</span><span class="p">),</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos"> 40</span></a>    <span class="n">COMUNA</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;#E69F00&quot;</span><span class="p">,</span> <span class="s2">&quot;#000000&quot;</span><span class="p">),</span>
+</span><span id="L-41"><a href="#L-41"><span class="linenos"> 41</span></a>    <span class="n">MUNICIPIO</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;#7F7F7F&quot;</span><span class="p">,</span> <span class="s2">&quot;#ffffff&quot;</span><span class="p">),</span>
+</span><span id="L-42"><a href="#L-42"><span class="linenos"> 42</span></a><span class="p">}</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos"> 43</span></a><span class="c1"># Diámetro en píxeles del círculo de un punto con 1 registro y tope para los más poblados.</span>
+</span><span id="L-44"><a href="#L-44"><span class="linenos"> 44</span></a><span class="n">DIAMETRO_MINIMO</span> <span class="o">=</span> <span class="mi">14</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos"> 45</span></a><span class="n">DIAMETRO_MAXIMO</span> <span class="o">=</span> <span class="mi">44</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos"> 46</span></a><span class="c1"># Zoom máximo del encuadre, para que un solo punto no se vea a escala de edificio.</span>
+</span><span id="L-47"><a href="#L-47"><span class="linenos"> 47</span></a><span class="n">ZOOM_MAXIMO</span> <span class="o">=</span> <span class="mi">15</span>
+</span><span id="L-48"><a href="#L-48"><span class="linenos"> 48</span></a>
+</span><span id="L-49"><a href="#L-49"><span class="linenos"> 49</span></a><span class="n">CLUSTERS</span> <span class="o">=</span> <span class="s2">&quot;Clusters&quot;</span>
+</span><span id="L-50"><a href="#L-50"><span class="linenos"> 50</span></a><span class="n">CLUSTERS_SIN_MUNICIPIO</span> <span class="o">=</span> <span class="s2">&quot;Clusters sin MUNICIPIO&quot;</span>
+</span><span id="L-51"><a href="#L-51"><span class="linenos"> 51</span></a><span class="n">CONTORNO_COMUNAS</span> <span class="o">=</span> <span class="s2">&quot;Contorno de comunas&quot;</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos"> 52</span></a><span class="n">CONTORNO_BARRIOS</span> <span class="o">=</span> <span class="s2">&quot;Contorno de barrios&quot;</span>
+</span><span id="L-53"><a href="#L-53"><span class="linenos"> 53</span></a><span class="n">BARRIOS_CANTIDAD</span> <span class="o">=</span> <span class="s2">&quot;Barrios por cantidad&quot;</span>
+</span><span id="L-54"><a href="#L-54"><span class="linenos"> 54</span></a><span class="n">COMUNAS_CANTIDAD</span> <span class="o">=</span> <span class="s2">&quot;Comunas por cantidad&quot;</span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a><span class="c1"># Relleno de los polígonos sin registros en las capas coloreadas.</span>
+</span><span id="L-56"><a href="#L-56"><span class="linenos"> 56</span></a><span class="n">COLOR_SIN_REGISTROS</span> <span class="o">=</span> <span class="s2">&quot;#d9d9d9&quot;</span>
+</span><span id="L-57"><a href="#L-57"><span class="linenos"> 57</span></a>
+</span><span id="L-58"><a href="#L-58"><span class="linenos"> 58</span></a><span class="c1"># Capas coloreadas: tipo de polígonos, columna que se cuenta, propiedad del GeoJSON que la</span>
+</span><span id="L-59"><a href="#L-59"><span class="linenos"> 59</span></a><span class="c1"># identifica, título de la escala y campos del tooltip con su etiqueta.</span>
+</span><span id="L-60"><a href="#L-60"><span class="linenos"> 60</span></a><span class="n">COLOREADAS</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-61"><a href="#L-61"><span class="linenos"> 61</span></a>    <span class="n">BARRIOS_CANTIDAD</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;barrios&quot;</span><span class="p">,</span> <span class="s2">&quot;Codigo barrio ubicacion&quot;</span><span class="p">,</span> <span class="s2">&quot;codigo&quot;</span><span class="p">,</span> <span class="s2">&quot;Registros por barrio&quot;</span><span class="p">,</span>
+</span><span id="L-62"><a href="#L-62"><span class="linenos"> 62</span></a>                       <span class="p">{</span><span class="s2">&quot;nombre&quot;</span><span class="p">:</span> <span class="s2">&quot;Barrio&quot;</span><span class="p">,</span> <span class="s2">&quot;comuna&quot;</span><span class="p">:</span> <span class="s2">&quot;Comuna&quot;</span><span class="p">,</span> <span class="s2">&quot;registros&quot;</span><span class="p">:</span> <span class="s2">&quot;Registros&quot;</span><span class="p">}),</span>
+</span><span id="L-63"><a href="#L-63"><span class="linenos"> 63</span></a>    <span class="n">COMUNAS_CANTIDAD</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;comunas&quot;</span><span class="p">,</span> <span class="s2">&quot;Comuna ubicacion&quot;</span><span class="p">,</span> <span class="s2">&quot;nombre&quot;</span><span class="p">,</span> <span class="s2">&quot;Registros por comuna&quot;</span><span class="p">,</span>
+</span><span id="L-64"><a href="#L-64"><span class="linenos"> 64</span></a>                       <span class="p">{</span><span class="s2">&quot;nombre&quot;</span><span class="p">:</span> <span class="s2">&quot;Comuna&quot;</span><span class="p">,</span> <span class="s2">&quot;registros&quot;</span><span class="p">:</span> <span class="s2">&quot;Registros&quot;</span><span class="p">}),</span>
+</span><span id="L-65"><a href="#L-65"><span class="linenos"> 65</span></a><span class="p">}</span>
+</span><span id="L-66"><a href="#L-66"><span class="linenos"> 66</span></a>
+</span><span id="L-67"><a href="#L-67"><span class="linenos"> 67</span></a>
+</span><span id="L-68"><a href="#L-68"><span class="linenos"> 68</span></a><span class="k">def</span><span class="w"> </span><span class="nf">mapa_con_capas</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">:</span>
+</span><span id="L-69"><a href="#L-69"><span class="linenos"> 69</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-70"><a href="#L-70"><span class="linenos"> 70</span></a><span class="sd">    Mapa de un área con una capa de puntos por nivel (visibles al abrir), las capas de clusters</span>
+</span><span id="L-71"><a href="#L-71"><span class="linenos"> 71</span></a><span class="sd">    con y sin el nivel MUNICIPIO (ocultas), la leyenda de niveles y el encuadre en los puntos.</span>
+</span><span id="L-72"><a href="#L-72"><span class="linenos"> 72</span></a>
+</span><span id="L-73"><a href="#L-73"><span class="linenos"> 73</span></a><span class="sd">    Con `poligonos` (`georef.geografia.Poligonos`), añade el contorno de las comunas (visible),</span>
+</span><span id="L-74"><a href="#L-74"><span class="linenos"> 74</span></a><span class="sd">    el de los barrios y los barrios y las comunas coloreados por cantidad (ocultos).</span>
+</span><span id="L-75"><a href="#L-75"><span class="linenos"> 75</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-76"><a href="#L-76"><span class="linenos"> 76</span></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span id="L-77"><a href="#L-77"><span class="linenos"> 77</span></a>    <span class="n">mapa</span> <span class="o">=</span> <span class="n">_mapa_encuadrado</span><span class="p">(</span><span class="n">_limites_puntos</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+</span><span id="L-78"><a href="#L-78"><span class="linenos"> 78</span></a>    <span class="k">if</span> <span class="n">poligonos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a>        <span class="n">_contornos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">)</span>
+</span><span id="L-80"><a href="#L-80"><span class="linenos"> 80</span></a>        <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="n">COLOREADAS</span><span class="p">:</span>
+</span><span id="L-81"><a href="#L-81"><span class="linenos"> 81</span></a>            <span class="n">_coloreada</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a>    <span class="n">_capas_puntos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
+</span><span id="L-83"><a href="#L-83"><span class="linenos"> 83</span></a>    <span class="n">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">CLUSTERS</span><span class="p">)</span>
+</span><span id="L-84"><a href="#L-84"><span class="linenos"> 84</span></a>    <span class="n">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">MUNICIPIO</span><span class="p">],</span> <span class="n">CLUSTERS_SIN_MUNICIPIO</span><span class="p">)</span>
+</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a>    <span class="n">_leyenda_niveles</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-86"><a href="#L-86"><span class="linenos"> 86</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">LayerControl</span><span class="p">(</span><span class="n">collapsed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-87"><a href="#L-87"><span class="linenos"> 87</span></a>    <span class="k">return</span> <span class="n">mapa</span>
+</span><span id="L-88"><a href="#L-88"><span class="linenos"> 88</span></a>
+</span><span id="L-89"><a href="#L-89"><span class="linenos"> 89</span></a>
+</span><span id="L-90"><a href="#L-90"><span class="linenos"> 90</span></a><span class="k">def</span><span class="w"> </span><span class="nf">mapa_separado</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">vista</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">:</span>
+</span><span id="L-91"><a href="#L-91"><span class="linenos"> 91</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-92"><a href="#L-92"><span class="linenos"> 92</span></a><span class="sd">    Mapa autónomo con una sola vista de `VISTAS`, para compartirlo como archivo suelto.</span>
+</span><span id="L-93"><a href="#L-93"><span class="linenos"> 93</span></a>
+</span><span id="L-94"><a href="#L-94"><span class="linenos"> 94</span></a><span class="sd">    - `puntos`: las capas de nivel con su leyenda; `clusters`: todos los registros. Las dos</span>
+</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a><span class="sd">      llevan el contorno de las comunas si se dan `poligonos`, y con `sin_municipio` excluyen</span>
+</span><span id="L-96"><a href="#L-96"><span class="linenos"> 96</span></a><span class="sd">      el nivel MUNICIPIO.</span>
+</span><span id="L-97"><a href="#L-97"><span class="linenos"> 97</span></a><span class="sd">    - `barrios_cantidad` y `comunas_cantidad`: la capa coloreada, encuadrada en Medellín.</span>
+</span><span id="L-98"><a href="#L-98"><span class="linenos"> 98</span></a><span class="sd">      Necesitan `poligonos`.</span>
+</span><span id="L-99"><a href="#L-99"><span class="linenos"> 99</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-100"><a href="#L-100"><span class="linenos">100</span></a>    <span class="k">if</span> <span class="n">vista</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VISTAS</span><span class="p">:</span>
+</span><span id="L-101"><a href="#L-101"><span class="linenos">101</span></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;vista desconocida: </span><span class="si">{</span><span class="n">vista</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-102"><a href="#L-102"><span class="linenos">102</span></a>    <span class="k">if</span> <span class="n">vista</span> <span class="ow">in</span> <span class="n">VISTAS_COLOREADAS</span><span class="p">:</span>
+</span><span id="L-103"><a href="#L-103"><span class="linenos">103</span></a>        <span class="k">if</span> <span class="n">poligonos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-104"><a href="#L-104"><span class="linenos">104</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;la vista &#39;</span><span class="si">{</span><span class="n">vista</span><span class="si">}</span><span class="s2">&#39; necesita los polígonos de Medellín&quot;</span><span class="p">)</span>
+</span><span id="L-105"><a href="#L-105"><span class="linenos">105</span></a>        <span class="n">mapa</span> <span class="o">=</span> <span class="n">_mapa_encuadrado</span><span class="p">(</span><span class="n">poligonos</span><span class="o">.</span><span class="n">limites_wgs84</span><span class="p">())</span>
+</span><span id="L-106"><a href="#L-106"><span class="linenos">106</span></a>        <span class="n">nombre</span> <span class="o">=</span> <span class="n">BARRIOS_CANTIDAD</span> <span class="k">if</span> <span class="n">vista</span> <span class="o">==</span> <span class="s2">&quot;barrios_cantidad&quot;</span> <span class="k">else</span> <span class="n">COMUNAS_CANTIDAD</span>
+</span><span id="L-107"><a href="#L-107"><span class="linenos">107</span></a>        <span class="n">_coloreada</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="L-108"><a href="#L-108"><span class="linenos">108</span></a>        <span class="k">return</span> <span class="n">mapa</span>
+</span><span id="L-109"><a href="#L-109"><span class="linenos">109</span></a>
+</span><span id="L-110"><a href="#L-110"><span class="linenos">110</span></a>    <span class="k">if</span> <span class="n">sin_municipio</span><span class="p">:</span>
+</span><span id="L-111"><a href="#L-111"><span class="linenos">111</span></a>        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">MUNICIPIO</span><span class="p">]</span>
+</span><span id="L-112"><a href="#L-112"><span class="linenos">112</span></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span id="L-113"><a href="#L-113"><span class="linenos">113</span></a>    <span class="n">mapa</span> <span class="o">=</span> <span class="n">_mapa_encuadrado</span><span class="p">(</span><span class="n">_limites_puntos</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+</span><span id="L-114"><a href="#L-114"><span class="linenos">114</span></a>    <span class="k">if</span> <span class="n">poligonos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-115"><a href="#L-115"><span class="linenos">115</span></a>        <span class="n">_contornos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">barrios</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="L-116"><a href="#L-116"><span class="linenos">116</span></a>    <span class="k">if</span> <span class="n">vista</span> <span class="o">==</span> <span class="s2">&quot;puntos&quot;</span><span class="p">:</span>
+</span><span id="L-117"><a href="#L-117"><span class="linenos">117</span></a>        <span class="n">_capas_puntos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
+</span><span id="L-118"><a href="#L-118"><span class="linenos">118</span></a>        <span class="n">_leyenda_niveles</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-119"><a href="#L-119"><span class="linenos">119</span></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="L-120"><a href="#L-120"><span class="linenos">120</span></a>        <span class="n">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">CLUSTERS</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">sin_municipio</span> <span class="k">else</span> <span class="n">CLUSTERS_SIN_MUNICIPIO</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="L-121"><a href="#L-121"><span class="linenos">121</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">LayerControl</span><span class="p">(</span><span class="n">collapsed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-122"><a href="#L-122"><span class="linenos">122</span></a>    <span class="k">return</span> <span class="n">mapa</span>
+</span><span id="L-123"><a href="#L-123"><span class="linenos">123</span></a>
+</span><span id="L-124"><a href="#L-124"><span class="linenos">124</span></a>
+</span><span id="L-125"><a href="#L-125"><span class="linenos">125</span></a><span class="k">def</span><span class="w"> </span><span class="nf">nombre_separado</span><span class="p">(</span><span class="n">vista</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="L-126"><a href="#L-126"><span class="linenos">126</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Nombre del archivo de un separado: `&lt;vista&gt;.html` o `&lt;vista&gt;_sin_municipio.html`.&quot;&quot;&quot;</span>
+</span><span id="L-127"><a href="#L-127"><span class="linenos">127</span></a>    <span class="n">sufijo</span> <span class="o">=</span> <span class="s2">&quot;_sin_municipio&quot;</span> <span class="k">if</span> <span class="n">sin_municipio</span> <span class="ow">and</span> <span class="n">vista</span> <span class="ow">in</span> <span class="n">VISTAS_DE_PUNTOS</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+</span><span id="L-128"><a href="#L-128"><span class="linenos">128</span></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vista</span><span class="si">}{</span><span class="n">sufijo</span><span class="si">}</span><span class="s2">.html&quot;</span>
+</span><span id="L-129"><a href="#L-129"><span class="linenos">129</span></a>
+</span><span id="L-130"><a href="#L-130"><span class="linenos">130</span></a>
+</span><span id="L-131"><a href="#L-131"><span class="linenos">131</span></a><span class="k">def</span><span class="w"> </span><span class="nf">generar</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">carpeta</span><span class="p">,</span> <span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">separados</span><span class="o">=</span><span class="p">(),</span> <span class="n">sin_municipio</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span id="L-132"><a href="#L-132"><span class="linenos">132</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-133"><a href="#L-133"><span class="linenos">133</span></a><span class="sd">    Escribe `carpeta/mapa.html` y, por cada vista de `separados`, `carpeta/separados/&lt;archivo&gt;`</span>
+</span><span id="L-134"><a href="#L-134"><span class="linenos">134</span></a><span class="sd">    (ver `nombre_separado`). Construye todos los mapas antes de escribir el primero, así que un</span>
+</span><span id="L-135"><a href="#L-135"><span class="linenos">135</span></a><span class="sd">    error no deja archivos a medias. Devuelve las rutas escritas.</span>
+</span><span id="L-136"><a href="#L-136"><span class="linenos">136</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-137"><a href="#L-137"><span class="linenos">137</span></a>    <span class="n">carpeta</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">carpeta</span><span class="p">)</span>
+</span><span id="L-138"><a href="#L-138"><span class="linenos">138</span></a>    <span class="n">mapas</span> <span class="o">=</span> <span class="p">[(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;mapa.html&quot;</span><span class="p">,</span> <span class="n">mapa_con_capas</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">))]</span>
+</span><span id="L-139"><a href="#L-139"><span class="linenos">139</span></a>    <span class="k">for</span> <span class="n">vista</span> <span class="ow">in</span> <span class="n">separados</span><span class="p">:</span>
+</span><span id="L-140"><a href="#L-140"><span class="linenos">140</span></a>        <span class="n">mapas</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">carpeta</span> <span class="o">/</span> <span class="n">CARPETA_SEPARADOS</span> <span class="o">/</span> <span class="n">nombre_separado</span><span class="p">(</span><span class="n">vista</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="p">),</span>
+</span><span id="L-141"><a href="#L-141"><span class="linenos">141</span></a>                      <span class="n">mapa_separado</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">vista</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="p">)))</span>
+</span><span id="L-142"><a href="#L-142"><span class="linenos">142</span></a>    <span class="k">for</span> <span class="n">ruta</span><span class="p">,</span> <span class="n">mapa</span> <span class="ow">in</span> <span class="n">mapas</span><span class="p">:</span>
+</span><span id="L-143"><a href="#L-143"><span class="linenos">143</span></a>        <span class="n">ruta</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="L-144"><a href="#L-144"><span class="linenos">144</span></a>        <span class="n">mapa</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">ruta</span><span class="p">)</span>
+</span><span id="L-145"><a href="#L-145"><span class="linenos">145</span></a>    <span class="k">return</span> <span class="p">[</span><span class="n">ruta</span> <span class="k">for</span> <span class="n">ruta</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">mapas</span><span class="p">]</span>
+</span><span id="L-146"><a href="#L-146"><span class="linenos">146</span></a>
+</span><span id="L-147"><a href="#L-147"><span class="linenos">147</span></a>
+</span><span id="L-148"><a href="#L-148"><span class="linenos">148</span></a><span class="k">def</span><span class="w"> </span><span class="nf">diametro</span><span class="p">(</span><span class="n">registros</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="L-149"><a href="#L-149"><span class="linenos">149</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Diámetro en píxeles del círculo de un punto con `registros` registros.&quot;&quot;&quot;</span>
+</span><span id="L-150"><a href="#L-150"><span class="linenos">150</span></a>    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">DIAMETRO_MINIMO</span> <span class="o">+</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">registros</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">DIAMETRO_MAXIMO</span><span class="p">)</span>
+</span><span id="L-151"><a href="#L-151"><span class="linenos">151</span></a>
+</span><span id="L-152"><a href="#L-152"><span class="linenos">152</span></a>
+</span><span id="L-153"><a href="#L-153"><span class="linenos">153</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+</span><span id="L-154"><a href="#L-154"><span class="linenos">154</span></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Latitud&quot;</span><span class="p">,</span> <span class="s2">&quot;Longitud&quot;</span><span class="p">])</span>
+</span><span id="L-155"><a href="#L-155"><span class="linenos">155</span></a>    <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span id="L-156"><a href="#L-156"><span class="linenos">156</span></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;no hay registros con coordenadas para dibujar en el mapa&quot;</span><span class="p">)</span>
+</span><span id="L-157"><a href="#L-157"><span class="linenos">157</span></a>    <span class="k">return</span> <span class="n">df</span>
+</span><span id="L-158"><a href="#L-158"><span class="linenos">158</span></a>
+</span><span id="L-159"><a href="#L-159"><span class="linenos">159</span></a>
+</span><span id="L-160"><a href="#L-160"><span class="linenos">160</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_limites_puntos</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+</span><span id="L-161"><a href="#L-161"><span class="linenos">161</span></a>    <span class="k">return</span> <span class="p">[[</span><span class="nb">float</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Latitud&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Longitud&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())],</span>
+</span><span id="L-162"><a href="#L-162"><span class="linenos">162</span></a>            <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Latitud&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Longitud&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())]]</span>
+</span><span id="L-163"><a href="#L-163"><span class="linenos">163</span></a>
+</span><span id="L-164"><a href="#L-164"><span class="linenos">164</span></a>
+</span><span id="L-165"><a href="#L-165"><span class="linenos">165</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_mapa_encuadrado</span><span class="p">(</span><span class="n">limites</span><span class="p">):</span>
+</span><span id="L-166"><a href="#L-166"><span class="linenos">166</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Mapa centrado en `limites` y encuadrado en ellos, sin pasar de `ZOOM_MAXIMO`.&quot;&quot;&quot;</span>
+</span><span id="L-167"><a href="#L-167"><span class="linenos">167</span></a>    <span class="p">(</span><span class="n">min_lat</span><span class="p">,</span> <span class="n">min_lng</span><span class="p">),</span> <span class="p">(</span><span class="n">max_lat</span><span class="p">,</span> <span class="n">max_lng</span><span class="p">)</span> <span class="o">=</span> <span class="n">limites</span>
+</span><span id="L-168"><a href="#L-168"><span class="linenos">168</span></a>    <span class="n">mapa</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="p">[(</span><span class="n">min_lat</span> <span class="o">+</span> <span class="n">max_lat</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">min_lng</span> <span class="o">+</span> <span class="n">max_lng</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">],</span> <span class="n">zoom_start</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+</span><span id="L-169"><a href="#L-169"><span class="linenos">169</span></a>    <span class="n">mapa</span><span class="o">.</span><span class="n">fit_bounds</span><span class="p">(</span><span class="n">limites</span><span class="p">,</span> <span class="n">max_zoom</span><span class="o">=</span><span class="n">ZOOM_MAXIMO</span><span class="p">)</span>
+</span><span id="L-170"><a href="#L-170"><span class="linenos">170</span></a>    <span class="k">return</span> <span class="n">mapa</span>
+</span><span id="L-171"><a href="#L-171"><span class="linenos">171</span></a>
+</span><span id="L-172"><a href="#L-172"><span class="linenos">172</span></a>
+</span><span id="L-173"><a href="#L-173"><span class="linenos">173</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_capas_puntos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+</span><span id="L-174"><a href="#L-174"><span class="linenos">174</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Una capa por nivel con registros; un círculo por punto distinto dentro de cada capa.&quot;&quot;&quot;</span>
+</span><span id="L-175"><a href="#L-175"><span class="linenos">175</span></a>    <span class="k">for</span> <span class="n">nivel</span> <span class="ow">in</span> <span class="n">NIVELES</span><span class="p">:</span>
+</span><span id="L-176"><a href="#L-176"><span class="linenos">176</span></a>        <span class="n">del_nivel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">nivel</span><span class="p">]</span>
+</span><span id="L-177"><a href="#L-177"><span class="linenos">177</span></a>        <span class="k">if</span> <span class="n">del_nivel</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span id="L-178"><a href="#L-178"><span class="linenos">178</span></a>            <span class="k">continue</span>
+</span><span id="L-179"><a href="#L-179"><span class="linenos">179</span></a>        <span class="n">capa</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">FeatureGroup</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nivel</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">_registros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">del_nivel</span><span class="p">))</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="L-180"><a href="#L-180"><span class="linenos">180</span></a>        <span class="k">for</span> <span class="p">(</span><span class="n">latitud</span><span class="p">,</span> <span class="n">longitud</span><span class="p">),</span> <span class="n">grupo</span> <span class="ow">in</span> <span class="n">del_nivel</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;Latitud&quot;</span><span class="p">,</span> <span class="s2">&quot;Longitud&quot;</span><span class="p">],</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span><span id="L-181"><a href="#L-181"><span class="linenos">181</span></a>            <span class="n">folium</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span>
+</span><span id="L-182"><a href="#L-182"><span class="linenos">182</span></a>                <span class="p">[</span><span class="n">latitud</span><span class="p">,</span> <span class="n">longitud</span><span class="p">],</span>
+</span><span id="L-183"><a href="#L-183"><span class="linenos">183</span></a>                <span class="n">icon</span><span class="o">=</span><span class="n">_icono</span><span class="p">(</span><span class="n">nivel</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">grupo</span><span class="p">)),</span>
+</span><span id="L-184"><a href="#L-184"><span class="linenos">184</span></a>                <span class="n">popup</span><span class="o">=</span><span class="n">folium</span><span class="o">.</span><span class="n">Popup</span><span class="p">(</span><span class="n">_ventana</span><span class="p">(</span><span class="n">nivel</span><span class="p">,</span> <span class="n">grupo</span><span class="p">),</span> <span class="n">max_width</span><span class="o">=</span><span class="mi">300</span><span class="p">),</span>
+</span><span id="L-185"><a href="#L-185"><span class="linenos">185</span></a>            <span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">capa</span><span class="p">)</span>
+</span><span id="L-186"><a href="#L-186"><span class="linenos">186</span></a>        <span class="n">capa</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-187"><a href="#L-187"><span class="linenos">187</span></a>
+</span><span id="L-188"><a href="#L-188"><span class="linenos">188</span></a>
+</span><span id="L-189"><a href="#L-189"><span class="linenos">189</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_icono</span><span class="p">(</span><span class="n">nivel</span><span class="p">,</span> <span class="n">registros</span><span class="p">):</span>
+</span><span id="L-190"><a href="#L-190"><span class="linenos">190</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Círculo del color del nivel, con el número de registros dentro si hay más de uno.&quot;&quot;&quot;</span>
+</span><span id="L-191"><a href="#L-191"><span class="linenos">191</span></a>    <span class="n">lado</span> <span class="o">=</span> <span class="n">diametro</span><span class="p">(</span><span class="n">registros</span><span class="p">)</span>
+</span><span id="L-192"><a href="#L-192"><span class="linenos">192</span></a>    <span class="n">fondo</span><span class="p">,</span> <span class="n">texto</span> <span class="o">=</span> <span class="n">COLORES_NIVEL</span><span class="p">[</span><span class="n">nivel</span><span class="p">]</span>
+</span><span id="L-193"><a href="#L-193"><span class="linenos">193</span></a>    <span class="n">numero</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">registros</span><span class="p">)</span> <span class="k">if</span> <span class="n">registros</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+</span><span id="L-194"><a href="#L-194"><span class="linenos">194</span></a>    <span class="n">contenido</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="L-195"><a href="#L-195"><span class="linenos">195</span></a>        <span class="sa">f</span><span class="s1">&#39;&lt;div style=&quot;width:</span><span class="si">{</span><span class="n">lado</span><span class="si">}</span><span class="s1">px;height:</span><span class="si">{</span><span class="n">lado</span><span class="si">}</span><span class="s1">px;border-radius:50%;background:</span><span class="si">{</span><span class="n">fondo</span><span class="si">}</span><span class="s1">;opacity:0.85;&#39;</span>
+</span><span id="L-196"><a href="#L-196"><span class="linenos">196</span></a>        <span class="sa">f</span><span class="s1">&#39;border:2px solid #ffffff;box-sizing:border-box;color:</span><span class="si">{</span><span class="n">texto</span><span class="si">}</span><span class="s1">;font:bold 12px sans-serif;&#39;</span>
+</span><span id="L-197"><a href="#L-197"><span class="linenos">197</span></a>        <span class="sa">f</span><span class="s1">&#39;display:flex;align-items:center;justify-content:center;&quot;&gt;</span><span class="si">{</span><span class="n">numero</span><span class="si">}</span><span class="s1">&lt;/div&gt;&#39;</span>
+</span><span id="L-198"><a href="#L-198"><span class="linenos">198</span></a>    <span class="p">)</span>
+</span><span id="L-199"><a href="#L-199"><span class="linenos">199</span></a>    <span class="k">return</span> <span class="n">folium</span><span class="o">.</span><span class="n">DivIcon</span><span class="p">(</span><span class="n">html</span><span class="o">=</span><span class="n">contenido</span><span class="p">,</span> <span class="n">icon_size</span><span class="o">=</span><span class="p">(</span><span class="n">lado</span><span class="p">,</span> <span class="n">lado</span><span class="p">),</span> <span class="n">icon_anchor</span><span class="o">=</span><span class="p">(</span><span class="n">lado</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">lado</span> <span class="o">//</span> <span class="mi">2</span><span class="p">))</span>
+</span><span id="L-200"><a href="#L-200"><span class="linenos">200</span></a>
+</span><span id="L-201"><a href="#L-201"><span class="linenos">201</span></a>
+</span><span id="L-202"><a href="#L-202"><span class="linenos">202</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_ventana</span><span class="p">(</span><span class="n">nivel</span><span class="p">,</span> <span class="n">grupo</span><span class="p">):</span>
+</span><span id="L-203"><a href="#L-203"><span class="linenos">203</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;HTML de la ventana de un punto: solo datos de ubicación y recuentos.&quot;&quot;&quot;</span>
+</span><span id="L-204"><a href="#L-204"><span class="linenos">204</span></a>    <span class="n">lineas</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;&lt;b&gt;Nivel:&lt;/b&gt; </span><span class="si">{</span><span class="n">html</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">nivel</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+</span><span id="L-205"><a href="#L-205"><span class="linenos">205</span></a>    <span class="k">for</span> <span class="n">etiqueta</span><span class="p">,</span> <span class="n">columna</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">&quot;Municipio&quot;</span><span class="p">,</span> <span class="n">COLUMNA_MUNICIPIO</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Barrio&quot;</span><span class="p">,</span> <span class="s2">&quot;Barrio ubicacion&quot;</span><span class="p">),</span>
+</span><span id="L-206"><a href="#L-206"><span class="linenos">206</span></a>                              <span class="p">(</span><span class="s2">&quot;Comuna&quot;</span><span class="p">,</span> <span class="s2">&quot;Comuna ubicacion&quot;</span><span class="p">)):</span>
+</span><span id="L-207"><a href="#L-207"><span class="linenos">207</span></a>        <span class="k">if</span> <span class="n">columna</span> <span class="ow">in</span> <span class="n">grupo</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span id="L-208"><a href="#L-208"><span class="linenos">208</span></a>            <span class="n">valores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">grupo</span><span class="p">[</span><span class="n">columna</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()})</span>
+</span><span id="L-209"><a href="#L-209"><span class="linenos">209</span></a>            <span class="k">if</span> <span class="n">valores</span><span class="p">:</span>
+</span><span id="L-210"><a href="#L-210"><span class="linenos">210</span></a>                <span class="n">lineas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;b&gt;</span><span class="si">{</span><span class="n">etiqueta</span><span class="si">}</span><span class="s2">:&lt;/b&gt; </span><span class="si">{</span><span class="n">html</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">valores</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-211"><a href="#L-211"><span class="linenos">211</span></a>    <span class="n">lineas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;b&gt;Registros:&lt;/b&gt; </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grupo</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-212"><a href="#L-212"><span class="linenos">212</span></a>    <span class="k">if</span> <span class="s2">&quot;Resultado consulta&quot;</span> <span class="ow">in</span> <span class="n">grupo</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span id="L-213"><a href="#L-213"><span class="linenos">213</span></a>        <span class="n">recuento</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">grupo</span><span class="p">[</span><span class="s2">&quot;Resultado consulta&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">())</span>
+</span><span id="L-214"><a href="#L-214"><span class="linenos">214</span></a>        <span class="n">orden</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">RESULTADOS</span> <span class="k">if</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recuento</span><span class="p">]</span> <span class="o">+</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">recuento</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">RESULTADOS</span><span class="p">))</span>
+</span><span id="L-215"><a href="#L-215"><span class="linenos">215</span></a>        <span class="n">lineas</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">html</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">resultado</span><span class="p">))</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">recuento</span><span class="p">[</span><span class="n">resultado</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">resultado</span> <span class="ow">in</span> <span class="n">orden</span><span class="p">]</span>
+</span><span id="L-216"><a href="#L-216"><span class="linenos">216</span></a>    <span class="k">return</span> <span class="s2">&quot;&lt;br&gt;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lineas</span><span class="p">)</span>
+</span><span id="L-217"><a href="#L-217"><span class="linenos">217</span></a>
+</span><span id="L-218"><a href="#L-218"><span class="linenos">218</span></a>
+</span><span id="L-219"><a href="#L-219"><span class="linenos">219</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</span><span id="L-220"><a href="#L-220"><span class="linenos">220</span></a>    <span class="n">datos</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s2">&quot;Latitud&quot;</span><span class="p">,</span> <span class="s2">&quot;Longitud&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+</span><span id="L-221"><a href="#L-221"><span class="linenos">221</span></a>    <span class="n">FastMarkerCluster</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">datos</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nombre</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">_registros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">datos</span><span class="p">))</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-222"><a href="#L-222"><span class="linenos">222</span></a>
+</span><span id="L-223"><a href="#L-223"><span class="linenos">223</span></a>
+</span><span id="L-224"><a href="#L-224"><span class="linenos">224</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_contornos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">barrios</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span><span id="L-225"><a href="#L-225"><span class="linenos">225</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Contornos de comunas y barrios. El relleno transparente hace que el tooltip responda en todo el polígono.&quot;&quot;&quot;</span>
+</span><span id="L-226"><a href="#L-226"><span class="linenos">226</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">GeoJson</span><span class="p">(</span>
+</span><span id="L-227"><a href="#L-227"><span class="linenos">227</span></a>        <span class="n">poligonos</span><span class="o">.</span><span class="n">geojson</span><span class="p">(</span><span class="s2">&quot;comunas&quot;</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">CONTORNO_COMUNAS</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="L-228"><a href="#L-228"><span class="linenos">228</span></a>        <span class="n">style_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;#444444&quot;</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;fillOpacity&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="L-229"><a href="#L-229"><span class="linenos">229</span></a>        <span class="n">tooltip</span><span class="o">=</span><span class="n">folium</span><span class="o">.</span><span class="n">GeoJsonTooltip</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;nombre&quot;</span><span class="p">],</span> <span class="n">aliases</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Comuna&quot;</span><span class="p">]),</span>
+</span><span id="L-230"><a href="#L-230"><span class="linenos">230</span></a>    <span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-231"><a href="#L-231"><span class="linenos">231</span></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">barrios</span><span class="p">:</span>
+</span><span id="L-232"><a href="#L-232"><span class="linenos">232</span></a>        <span class="k">return</span>
+</span><span id="L-233"><a href="#L-233"><span class="linenos">233</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">GeoJson</span><span class="p">(</span>
+</span><span id="L-234"><a href="#L-234"><span class="linenos">234</span></a>        <span class="n">poligonos</span><span class="o">.</span><span class="n">geojson</span><span class="p">(</span><span class="s2">&quot;barrios&quot;</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">CONTORNO_BARRIOS</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="L-235"><a href="#L-235"><span class="linenos">235</span></a>        <span class="n">style_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;#777777&quot;</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;fillOpacity&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="L-236"><a href="#L-236"><span class="linenos">236</span></a>        <span class="n">tooltip</span><span class="o">=</span><span class="n">folium</span><span class="o">.</span><span class="n">GeoJsonTooltip</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;nombre&quot;</span><span class="p">,</span> <span class="s2">&quot;comuna&quot;</span><span class="p">],</span> <span class="n">aliases</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Barrio&quot;</span><span class="p">,</span> <span class="s2">&quot;Comuna&quot;</span><span class="p">]),</span>
+</span><span id="L-237"><a href="#L-237"><span class="linenos">237</span></a>    <span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-238"><a href="#L-238"><span class="linenos">238</span></a>
+</span><span id="L-239"><a href="#L-239"><span class="linenos">239</span></a>
+</span><span id="L-240"><a href="#L-240"><span class="linenos">240</span></a><span class="k">def</span><span class="w"> </span><span class="nf">cantidades</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">):</span>
+</span><span id="L-241"><a href="#L-241"><span class="linenos">241</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Registros por polígono de la capa coloreada `nombre`: {codigo de barrio o comuna: registros}.&quot;&quot;&quot;</span>
+</span><span id="L-242"><a href="#L-242"><span class="linenos">242</span></a>    <span class="n">_</span><span class="p">,</span> <span class="n">columna</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">COLOREADAS</span><span class="p">[</span><span class="n">nombre</span><span class="p">]</span>
+</span><span id="L-243"><a href="#L-243"><span class="linenos">243</span></a>    <span class="k">if</span> <span class="n">columna</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span id="L-244"><a href="#L-244"><span class="linenos">244</span></a>        <span class="k">return</span> <span class="p">{}</span>
+</span><span id="L-245"><a href="#L-245"><span class="linenos">245</span></a>    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">columna</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span><span id="L-246"><a href="#L-246"><span class="linenos">246</span></a>
+</span><span id="L-247"><a href="#L-247"><span class="linenos">247</span></a>
+</span><span id="L-248"><a href="#L-248"><span class="linenos">248</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_coloreada</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="p">):</span>
+</span><span id="L-249"><a href="#L-249"><span class="linenos">249</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Polígonos coloreados por cantidad de registros, con escala; gris si no tienen ninguno.&quot;&quot;&quot;</span>
+</span><span id="L-250"><a href="#L-250"><span class="linenos">250</span></a>    <span class="n">tipo</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clave</span><span class="p">,</span> <span class="n">titulo</span><span class="p">,</span> <span class="n">campos</span> <span class="o">=</span> <span class="n">COLOREADAS</span><span class="p">[</span><span class="n">nombre</span><span class="p">]</span>
+</span><span id="L-251"><a href="#L-251"><span class="linenos">251</span></a>    <span class="n">por_poligono</span> <span class="o">=</span> <span class="n">cantidades</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">)</span>
+</span><span id="L-252"><a href="#L-252"><span class="linenos">252</span></a>    <span class="n">coleccion</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">poligonos</span><span class="o">.</span><span class="n">geojson</span><span class="p">(</span><span class="n">tipo</span><span class="p">))</span>
+</span><span id="L-253"><a href="#L-253"><span class="linenos">253</span></a>    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">coleccion</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]:</span>
+</span><span id="L-254"><a href="#L-254"><span class="linenos">254</span></a>        <span class="n">feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;registros&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">por_poligono</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="n">clave</span><span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
+</span><span id="L-255"><a href="#L-255"><span class="linenos">255</span></a>    <span class="n">maximo</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">f</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;registros&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">coleccion</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]),</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="L-256"><a href="#L-256"><span class="linenos">256</span></a>    <span class="n">escala</span> <span class="o">=</span> <span class="n">branca</span><span class="o">.</span><span class="n">colormap</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">YlOrRd_09</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">maximo</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+</span><span id="L-257"><a href="#L-257"><span class="linenos">257</span></a>    <span class="n">escala</span><span class="o">.</span><span class="n">caption</span> <span class="o">=</span> <span class="n">titulo</span>
+</span><span id="L-258"><a href="#L-258"><span class="linenos">258</span></a>
+</span><span id="L-259"><a href="#L-259"><span class="linenos">259</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">estilo</span><span class="p">(</span><span class="n">feature</span><span class="p">):</span>
+</span><span id="L-260"><a href="#L-260"><span class="linenos">260</span></a>        <span class="n">registros</span> <span class="o">=</span> <span class="n">feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;registros&quot;</span><span class="p">]</span>
+</span><span id="L-261"><a href="#L-261"><span class="linenos">261</span></a>        <span class="n">relleno</span> <span class="o">=</span> <span class="n">escala</span><span class="p">(</span><span class="n">registros</span><span class="p">)</span> <span class="k">if</span> <span class="n">registros</span> <span class="k">else</span> <span class="n">COLOR_SIN_REGISTROS</span>
+</span><span id="L-262"><a href="#L-262"><span class="linenos">262</span></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;fillColor&quot;</span><span class="p">:</span> <span class="n">relleno</span><span class="p">,</span> <span class="s2">&quot;fillOpacity&quot;</span><span class="p">:</span> <span class="mf">0.7</span> <span class="k">if</span> <span class="n">registros</span> <span class="k">else</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;#555555&quot;</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+</span><span id="L-263"><a href="#L-263"><span class="linenos">263</span></a>
+</span><span id="L-264"><a href="#L-264"><span class="linenos">264</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">GeoJson</span><span class="p">(</span>
+</span><span id="L-265"><a href="#L-265"><span class="linenos">265</span></a>        <span class="n">coleccion</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span> <span class="n">style_function</span><span class="o">=</span><span class="n">estilo</span><span class="p">,</span>
+</span><span id="L-266"><a href="#L-266"><span class="linenos">266</span></a>        <span class="n">tooltip</span><span class="o">=</span><span class="n">folium</span><span class="o">.</span><span class="n">GeoJsonTooltip</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">campos</span><span class="p">),</span> <span class="n">aliases</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">campos</span><span class="o">.</span><span class="n">values</span><span class="p">())),</span>
+</span><span id="L-267"><a href="#L-267"><span class="linenos">267</span></a>    <span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-268"><a href="#L-268"><span class="linenos">268</span></a>    <span class="n">escala</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="L-269"><a href="#L-269"><span class="linenos">269</span></a>
+</span><span id="L-270"><a href="#L-270"><span class="linenos">270</span></a>
+</span><span id="L-271"><a href="#L-271"><span class="linenos">271</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_leyenda_niveles</span><span class="p">(</span><span class="n">mapa</span><span class="p">):</span>
+</span><span id="L-272"><a href="#L-272"><span class="linenos">272</span></a>    <span class="n">filas</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span><span id="L-273"><a href="#L-273"><span class="linenos">273</span></a>        <span class="sa">f</span><span class="s1">&#39;&lt;div&gt;&lt;span style=&quot;display:inline-block;width:12px;height:12px;border-radius:50%;&#39;</span>
+</span><span id="L-274"><a href="#L-274"><span class="linenos">274</span></a>        <span class="sa">f</span><span class="s1">&#39;background:</span><span class="si">{</span><span class="n">fondo</span><span class="si">}</span><span class="s1">;margin-right:6px;vertical-align:middle;&quot;&gt;&lt;/span&gt;</span><span class="si">{</span><span class="n">nivel</span><span class="si">}</span><span class="s1">&lt;/div&gt;&#39;</span>
+</span><span id="L-275"><a href="#L-275"><span class="linenos">275</span></a>        <span class="k">for</span> <span class="n">nivel</span><span class="p">,</span> <span class="p">(</span><span class="n">fondo</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">COLORES_NIVEL</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+</span><span id="L-276"><a href="#L-276"><span class="linenos">276</span></a>    <span class="p">)</span>
+</span><span id="L-277"><a href="#L-277"><span class="linenos">277</span></a>    <span class="n">leyenda</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="L-278"><a href="#L-278"><span class="linenos">278</span></a>        <span class="s1">&#39;&lt;div style=&quot;position:fixed;bottom:24px;left:12px;z-index:1000;background:#ffffff;&#39;</span>
+</span><span id="L-279"><a href="#L-279"><span class="linenos">279</span></a>        <span class="s1">&#39;padding:8px 10px;border:1px solid #999999;border-radius:4px;font:12px sans-serif;&quot;&gt;&#39;</span>
+</span><span id="L-280"><a href="#L-280"><span class="linenos">280</span></a>        <span class="sa">f</span><span class="s1">&#39;&lt;b&gt;Nivel de ubicación&lt;/b&gt;</span><span class="si">{</span><span class="n">filas</span><span class="si">}</span><span class="s1">&#39;</span>
+</span><span id="L-281"><a href="#L-281"><span class="linenos">281</span></a>        <span class="s1">&#39;&lt;div style=&quot;margin-top:4px;&quot;&gt;El número indica cuántos registros comparten el punto.&lt;/div&gt;&lt;/div&gt;&#39;</span>
+</span><span id="L-282"><a href="#L-282"><span class="linenos">282</span></a>    <span class="p">)</span>
+</span><span id="L-283"><a href="#L-283"><span class="linenos">283</span></a>    <span class="n">mapa</span><span class="o">.</span><span class="n">get_root</span><span class="p">()</span><span class="o">.</span><span class="n">html</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">folium</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span><span class="n">leyenda</span><span class="p">))</span>
+</span><span id="L-284"><a href="#L-284"><span class="linenos">284</span></a>
+</span><span id="L-285"><a href="#L-285"><span class="linenos">285</span></a>
+</span><span id="L-286"><a href="#L-286"><span class="linenos">286</span></a><span class="k">def</span><span class="w"> </span><span class="nf">_registros</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+</span><span id="L-287"><a href="#L-287"><span class="linenos">287</span></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> registro&quot;</span> <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> registros&quot;</span>
 </span></pre></div>
 
 
             </section>
-                <section id="CENTRO_MAPA">
+                <section id="VISTAS">
                     <div class="attr variable">
-            <span class="name">CENTRO_MAPA</span>        =
-<span class="default_value">[6.2464186, -75.5942503]</span>
+            <span class="name">VISTAS</span>        =
+<span class="default_value">(&#39;puntos&#39;, &#39;clusters&#39;, &#39;barrios_cantidad&#39;, &#39;comunas_cantidad&#39;)</span>
 
         
     </div>
-    <a class="headerlink" href="#CENTRO_MAPA"></a>
+    <a class="headerlink" href="#VISTAS"></a>
     
     
 
                 </section>
-                <section id="ZOOM_INICIAL">
+                <section id="VISTAS_COLOREADAS">
                     <div class="attr variable">
-            <span class="name">ZOOM_INICIAL</span>        =
-<span class="default_value">12</span>
+            <span class="name">VISTAS_COLOREADAS</span>        =
+<span class="default_value">(&#39;barrios_cantidad&#39;, &#39;comunas_cantidad&#39;)</span>
 
         
     </div>
-    <a class="headerlink" href="#ZOOM_INICIAL"></a>
+    <a class="headerlink" href="#VISTAS_COLOREADAS"></a>
     
     
 
                 </section>
-                <section id="visualizar">
-                            <input id="visualizar-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+                <section id="VISTAS_DE_PUNTOS">
+                    <div class="attr variable">
+            <span class="name">VISTAS_DE_PUNTOS</span>        =
+<span class="default_value">(&#39;puntos&#39;, &#39;clusters&#39;)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VISTAS_DE_PUNTOS"></a>
+    
+    
+
+                </section>
+                <section id="CARPETA_SEPARADOS">
+                    <div class="attr variable">
+            <span class="name">CARPETA_SEPARADOS</span>        =
+<span class="default_value">&#39;separados&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CARPETA_SEPARADOS"></a>
+    
+    
+
+                </section>
+                <section id="COLUMNA_MUNICIPIO">
+                    <div class="attr variable">
+            <span class="name">COLUMNA_MUNICIPIO</span>        =
+<span class="default_value">&#39;Municipio&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#COLUMNA_MUNICIPIO"></a>
+    
+    
+
+                </section>
+                <section id="COLUMNAS">
+                    <div class="attr variable">
+            <span class="name">COLUMNAS</span>        =
+<input id="COLUMNAS-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+            <label class="view-value-button pdoc-button" for="COLUMNAS-view-value"></label><span class="default_value">[&#39;Latitud&#39;, &#39;Longitud&#39;, &#39;Nivel ubicacion&#39;, &#39;Resultado consulta&#39;, &#39;Barrio ubicacion&#39;, &#39;Codigo barrio ubicacion&#39;, &#39;Comuna ubicacion&#39;, &#39;Municipio&#39;]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#COLUMNAS"></a>
+    
+    
+
+                </section>
+                <section id="COLORES_NIVEL">
+                    <div class="attr variable">
+            <span class="name">COLORES_NIVEL</span>        =
+<input id="COLORES_NIVEL-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+            <label class="view-value-button pdoc-button" for="COLORES_NIVEL-view-value"></label><span class="default_value">{&#39;DIRECCION&#39;: (&#39;#009E73&#39;, &#39;#ffffff&#39;), &#39;BARRIO&#39;: (&#39;#0072B2&#39;, &#39;#ffffff&#39;), &#39;COMUNA&#39;: (&#39;#E69F00&#39;, &#39;#000000&#39;), &#39;MUNICIPIO&#39;: (&#39;#7F7F7F&#39;, &#39;#ffffff&#39;)}</span>
+
+        
+    </div>
+    <a class="headerlink" href="#COLORES_NIVEL"></a>
+    
+    
+
+                </section>
+                <section id="DIAMETRO_MINIMO">
+                    <div class="attr variable">
+            <span class="name">DIAMETRO_MINIMO</span>        =
+<span class="default_value">14</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DIAMETRO_MINIMO"></a>
+    
+    
+
+                </section>
+                <section id="DIAMETRO_MAXIMO">
+                    <div class="attr variable">
+            <span class="name">DIAMETRO_MAXIMO</span>        =
+<span class="default_value">44</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DIAMETRO_MAXIMO"></a>
+    
+    
+
+                </section>
+                <section id="ZOOM_MAXIMO">
+                    <div class="attr variable">
+            <span class="name">ZOOM_MAXIMO</span>        =
+<span class="default_value">15</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ZOOM_MAXIMO"></a>
+    
+    
+
+                </section>
+                <section id="CLUSTERS">
+                    <div class="attr variable">
+            <span class="name">CLUSTERS</span>        =
+<span class="default_value">&#39;Clusters&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CLUSTERS"></a>
+    
+    
+
+                </section>
+                <section id="CLUSTERS_SIN_MUNICIPIO">
+                    <div class="attr variable">
+            <span class="name">CLUSTERS_SIN_MUNICIPIO</span>        =
+<span class="default_value">&#39;Clusters sin MUNICIPIO&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CLUSTERS_SIN_MUNICIPIO"></a>
+    
+    
+
+                </section>
+                <section id="CONTORNO_COMUNAS">
+                    <div class="attr variable">
+            <span class="name">CONTORNO_COMUNAS</span>        =
+<span class="default_value">&#39;Contorno de comunas&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CONTORNO_COMUNAS"></a>
+    
+    
+
+                </section>
+                <section id="CONTORNO_BARRIOS">
+                    <div class="attr variable">
+            <span class="name">CONTORNO_BARRIOS</span>        =
+<span class="default_value">&#39;Contorno de barrios&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CONTORNO_BARRIOS"></a>
+    
+    
+
+                </section>
+                <section id="BARRIOS_CANTIDAD">
+                    <div class="attr variable">
+            <span class="name">BARRIOS_CANTIDAD</span>        =
+<span class="default_value">&#39;Barrios por cantidad&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BARRIOS_CANTIDAD"></a>
+    
+    
+
+                </section>
+                <section id="COMUNAS_CANTIDAD">
+                    <div class="attr variable">
+            <span class="name">COMUNAS_CANTIDAD</span>        =
+<span class="default_value">&#39;Comunas por cantidad&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#COMUNAS_CANTIDAD"></a>
+    
+    
+
+                </section>
+                <section id="COLOR_SIN_REGISTROS">
+                    <div class="attr variable">
+            <span class="name">COLOR_SIN_REGISTROS</span>        =
+<span class="default_value">&#39;#d9d9d9&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#COLOR_SIN_REGISTROS"></a>
+    
+    
+
+                </section>
+                <section id="COLOREADAS">
+                    <div class="attr variable">
+            <span class="name">COLOREADAS</span>        =
+<input id="COLOREADAS-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+            <label class="view-value-button pdoc-button" for="COLOREADAS-view-value"></label><span class="default_value">{&#39;Barrios por cantidad&#39;: (&#39;barrios&#39;, &#39;Codigo barrio ubicacion&#39;, &#39;codigo&#39;, &#39;Registros por barrio&#39;, {&#39;nombre&#39;: &#39;Barrio&#39;, &#39;comuna&#39;: &#39;Comuna&#39;, &#39;registros&#39;: &#39;Registros&#39;}), &#39;Comunas por cantidad&#39;: (&#39;comunas&#39;, &#39;Comuna ubicacion&#39;, &#39;nombre&#39;, &#39;Registros por comuna&#39;, {&#39;nombre&#39;: &#39;Comuna&#39;, &#39;registros&#39;: &#39;Registros&#39;})}</span>
+
+        
+    </div>
+    <a class="headerlink" href="#COLOREADAS"></a>
+    
+    
+
+                </section>
+                <section id="mapa_con_capas">
+                            <input id="mapa_con_capas-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">visualizar</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">df</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>, </span><span class="param"><span class="n">carpeta</span></span><span class="return-annotation">):</span></span>
+        <span class="name">mapa_con_capas</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">df</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>, </span><span class="param"><span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">folium</span><span class="o">.</span><span class="n">folium</span><span class="o">.</span><span class="n">Map</span>:</span></span>
 
-                <label class="view-source-button" for="visualizar-view-source"><span>View Source</span></label>
+                <label class="view-source-button" for="mapa_con_capas-view-source"><span>View Source</span></label>
 
     </div>
-    <a class="headerlink" href="#visualizar"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="visualizar-20"><a href="#visualizar-20"><span class="linenos">20</span></a><span class="k">def</span><span class="w"> </span><span class="nf">visualizar</span><span class="p">(</span><span class="n">df</span> <span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">carpeta</span><span class="p">):</span>
-</span><span id="visualizar-21"><a href="#visualizar-21"><span class="linenos">21</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="visualizar-22"><a href="#visualizar-22"><span class="linenos">22</span></a><span class="sd">    Genera y guarda mapas HTML con marcadores y clusters basados en coordenadas del DataFrame.</span>
-</span><span id="visualizar-23"><a href="#visualizar-23"><span class="linenos">23</span></a>
-</span><span id="visualizar-24"><a href="#visualizar-24"><span class="linenos">24</span></a><span class="sd">    Escribe `individual.html` y `clusters.html` en `carpeta`, y en `carpeta/filtrados/` las</span>
-</span><span id="visualizar-25"><a href="#visualizar-25"><span class="linenos">25</span></a><span class="sd">    versiones sin los registros ubicados solo a nivel de municipio. Crea las carpetas si no existen.</span>
-</span><span id="visualizar-26"><a href="#visualizar-26"><span class="linenos">26</span></a>
-</span><span id="visualizar-27"><a href="#visualizar-27"><span class="linenos">27</span></a><span class="sd">    Args:</span>
-</span><span id="visualizar-28"><a href="#visualizar-28"><span class="linenos">28</span></a><span class="sd">        df (pd.DataFrame): DataFrame con columnas &#39;Latitud&#39;, &#39;Longitud&#39; y &#39;Nivel ubicacion&#39;.</span>
-</span><span id="visualizar-29"><a href="#visualizar-29"><span class="linenos">29</span></a><span class="sd">        carpeta: Carpeta de los mapas del área (por ejemplo, `mapas/area_metropolitana`).</span>
-</span><span id="visualizar-30"><a href="#visualizar-30"><span class="linenos">30</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="visualizar-31"><a href="#visualizar-31"><span class="linenos">31</span></a>    <span class="n">carpeta</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">carpeta</span><span class="p">)</span>
-</span><span id="visualizar-32"><a href="#visualizar-32"><span class="linenos">32</span></a>    <span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="visualizar-33"><a href="#visualizar-33"><span class="linenos">33</span></a>    <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">,</span> <span class="s1">&#39;Longitud&#39;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="visualizar-34"><a href="#visualizar-34"><span class="linenos">34</span></a>    <span class="n">latitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="visualizar-35"><a href="#visualizar-35"><span class="linenos">35</span></a>    <span class="n">longitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="visualizar-36"><a href="#visualizar-36"><span class="linenos">36</span></a>    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">latitudes</span><span class="p">,</span> <span class="n">longitudes</span><span class="p">))</span>
-</span><span id="visualizar-37"><a href="#visualizar-37"><span class="linenos">37</span></a>
-</span><span id="visualizar-38"><a href="#visualizar-38"><span class="linenos">38</span></a>    <span class="n">mapa_marcadores</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="visualizar-39"><a href="#visualizar-39"><span class="linenos">39</span></a>    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-</span><span id="visualizar-40"><a href="#visualizar-40"><span class="linenos">40</span></a>        <span class="n">coordenada</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">])</span>
-</span><span id="visualizar-41"><a href="#visualizar-41"><span class="linenos">41</span></a>        <span class="n">folium</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span><span class="n">coordenada</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_marcadores</span><span class="p">)</span>
-</span><span id="visualizar-42"><a href="#visualizar-42"><span class="linenos">42</span></a>
-</span><span id="visualizar-43"><a href="#visualizar-43"><span class="linenos">43</span></a>    <span class="n">mapa_clusters</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="visualizar-44"><a href="#visualizar-44"><span class="linenos">44</span></a>
-</span><span id="visualizar-45"><a href="#visualizar-45"><span class="linenos">45</span></a>    <span class="n">FastMarkerCluster</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_clusters</span><span class="p">)</span>
-</span><span id="visualizar-46"><a href="#visualizar-46"><span class="linenos">46</span></a>
-</span><span id="visualizar-47"><a href="#visualizar-47"><span class="linenos">47</span></a>    <span class="n">mapa_marcadores</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s1">&#39;individual.html&#39;</span><span class="p">)</span>
-</span><span id="visualizar-48"><a href="#visualizar-48"><span class="linenos">48</span></a>    <span class="n">mapa_clusters</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s1">&#39;clusters.html&#39;</span><span class="p">)</span>
-</span><span id="visualizar-49"><a href="#visualizar-49"><span class="linenos">49</span></a>
-</span><span id="visualizar-50"><a href="#visualizar-50"><span class="linenos">50</span></a>    <span class="n">df_filtrado</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">MUNICIPIO</span><span class="p">]</span>
-</span><span id="visualizar-51"><a href="#visualizar-51"><span class="linenos">51</span></a>    <span class="n">latitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df_filtrado</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="visualizar-52"><a href="#visualizar-52"><span class="linenos">52</span></a>    <span class="n">longitudes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df_filtrado</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)]</span>
-</span><span id="visualizar-53"><a href="#visualizar-53"><span class="linenos">53</span></a>    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">latitudes</span><span class="p">,</span> <span class="n">longitudes</span><span class="p">))</span>
-</span><span id="visualizar-54"><a href="#visualizar-54"><span class="linenos">54</span></a>
-</span><span id="visualizar-55"><a href="#visualizar-55"><span class="linenos">55</span></a>    <span class="n">mapa_marcadores</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="visualizar-56"><a href="#visualizar-56"><span class="linenos">56</span></a>    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">df_filtrado</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-</span><span id="visualizar-57"><a href="#visualizar-57"><span class="linenos">57</span></a>        <span class="n">coordenada</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_filtrado</span><span class="p">[</span><span class="s1">&#39;Latitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">],</span> <span class="n">df_filtrado</span><span class="p">[</span><span class="s1">&#39;Longitud&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">])</span>
-</span><span id="visualizar-58"><a href="#visualizar-58"><span class="linenos">58</span></a>        <span class="n">folium</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span><span class="n">coordenada</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_marcadores</span><span class="p">)</span>
-</span><span id="visualizar-59"><a href="#visualizar-59"><span class="linenos">59</span></a>
-</span><span id="visualizar-60"><a href="#visualizar-60"><span class="linenos">60</span></a>    <span class="n">mapa_clusters</span> <span class="o">=</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">CENTRO_MAPA</span><span class="p">,</span> <span class="n">zoom_start</span><span class="o">=</span><span class="n">ZOOM_INICIAL</span><span class="p">)</span>
-</span><span id="visualizar-61"><a href="#visualizar-61"><span class="linenos">61</span></a>
-</span><span id="visualizar-62"><a href="#visualizar-62"><span class="linenos">62</span></a>    <span class="n">FastMarkerCluster</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa_clusters</span><span class="p">)</span>
-</span><span id="visualizar-63"><a href="#visualizar-63"><span class="linenos">63</span></a>
-</span><span id="visualizar-64"><a href="#visualizar-64"><span class="linenos">64</span></a>    <span class="n">mapa_marcadores</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span> <span class="o">/</span> <span class="s1">&#39;individual_filtrados.html&#39;</span><span class="p">)</span>
-</span><span id="visualizar-65"><a href="#visualizar-65"><span class="linenos">65</span></a>    <span class="n">mapa_clusters</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;filtrados&quot;</span> <span class="o">/</span> <span class="s1">&#39;clusters_filtrados.html&#39;</span><span class="p">)</span>
+    <a class="headerlink" href="#mapa_con_capas"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="mapa_con_capas-69"><a href="#mapa_con_capas-69"><span class="linenos">69</span></a><span class="k">def</span><span class="w"> </span><span class="nf">mapa_con_capas</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">:</span>
+</span><span id="mapa_con_capas-70"><a href="#mapa_con_capas-70"><span class="linenos">70</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="mapa_con_capas-71"><a href="#mapa_con_capas-71"><span class="linenos">71</span></a><span class="sd">    Mapa de un área con una capa de puntos por nivel (visibles al abrir), las capas de clusters</span>
+</span><span id="mapa_con_capas-72"><a href="#mapa_con_capas-72"><span class="linenos">72</span></a><span class="sd">    con y sin el nivel MUNICIPIO (ocultas), la leyenda de niveles y el encuadre en los puntos.</span>
+</span><span id="mapa_con_capas-73"><a href="#mapa_con_capas-73"><span class="linenos">73</span></a>
+</span><span id="mapa_con_capas-74"><a href="#mapa_con_capas-74"><span class="linenos">74</span></a><span class="sd">    Con `poligonos` (`georef.geografia.Poligonos`), añade el contorno de las comunas (visible),</span>
+</span><span id="mapa_con_capas-75"><a href="#mapa_con_capas-75"><span class="linenos">75</span></a><span class="sd">    el de los barrios y los barrios y las comunas coloreados por cantidad (ocultos).</span>
+</span><span id="mapa_con_capas-76"><a href="#mapa_con_capas-76"><span class="linenos">76</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="mapa_con_capas-77"><a href="#mapa_con_capas-77"><span class="linenos">77</span></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span id="mapa_con_capas-78"><a href="#mapa_con_capas-78"><span class="linenos">78</span></a>    <span class="n">mapa</span> <span class="o">=</span> <span class="n">_mapa_encuadrado</span><span class="p">(</span><span class="n">_limites_puntos</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+</span><span id="mapa_con_capas-79"><a href="#mapa_con_capas-79"><span class="linenos">79</span></a>    <span class="k">if</span> <span class="n">poligonos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="mapa_con_capas-80"><a href="#mapa_con_capas-80"><span class="linenos">80</span></a>        <span class="n">_contornos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">)</span>
+</span><span id="mapa_con_capas-81"><a href="#mapa_con_capas-81"><span class="linenos">81</span></a>        <span class="k">for</span> <span class="n">nombre</span> <span class="ow">in</span> <span class="n">COLOREADAS</span><span class="p">:</span>
+</span><span id="mapa_con_capas-82"><a href="#mapa_con_capas-82"><span class="linenos">82</span></a>            <span class="n">_coloreada</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="mapa_con_capas-83"><a href="#mapa_con_capas-83"><span class="linenos">83</span></a>    <span class="n">_capas_puntos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
+</span><span id="mapa_con_capas-84"><a href="#mapa_con_capas-84"><span class="linenos">84</span></a>    <span class="n">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">CLUSTERS</span><span class="p">)</span>
+</span><span id="mapa_con_capas-85"><a href="#mapa_con_capas-85"><span class="linenos">85</span></a>    <span class="n">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">MUNICIPIO</span><span class="p">],</span> <span class="n">CLUSTERS_SIN_MUNICIPIO</span><span class="p">)</span>
+</span><span id="mapa_con_capas-86"><a href="#mapa_con_capas-86"><span class="linenos">86</span></a>    <span class="n">_leyenda_niveles</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="mapa_con_capas-87"><a href="#mapa_con_capas-87"><span class="linenos">87</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">LayerControl</span><span class="p">(</span><span class="n">collapsed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="mapa_con_capas-88"><a href="#mapa_con_capas-88"><span class="linenos">88</span></a>    <span class="k">return</span> <span class="n">mapa</span>
 </span></pre></div>
 
 
-            <div class="docstring"><p>Genera y guarda mapas HTML con marcadores y clusters basados en coordenadas del DataFrame.</p>
+            <div class="docstring"><p>Mapa de un área con una capa de puntos por nivel (visibles al abrir), las capas de clusters
+con y sin el nivel MUNICIPIO (ocultas), la leyenda de niveles y el encuadre en los puntos.</p>
 
-<p>Escribe <code>individual.html</code> y <code>clusters.html</code> en <code>carpeta</code>, y en <code>carpeta/filtrados/</code> las
-versiones sin los registros ubicados solo a nivel de municipio. Crea las carpetas si no existen.</p>
+<p>Con <code>poligonos</code> (<code><a href="geografia.html#Poligonos">georef.geografia.Poligonos</a></code>), añade el contorno de las comunas (visible),
+el de los barrios y los barrios y las comunas coloreados por cantidad (ocultos).</p>
+</div>
 
-<p>Args:
-    df (pd.DataFrame): DataFrame con columnas 'Latitud', 'Longitud' y 'Nivel ubicacion'.
-    carpeta: Carpeta de los mapas del área (por ejemplo, <code>mapas/area_metropolitana</code>).</p>
+
+                </section>
+                <section id="mapa_separado">
+                            <input id="mapa_separado-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mapa_separado</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">df</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>,</span><span class="param">	<span class="n">vista</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">	<span class="n">sin_municipio</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">) -> <span class="n">folium</span><span class="o">.</span><span class="n">folium</span><span class="o">.</span><span class="n">Map</span>:</span></span>
+
+                <label class="view-source-button" for="mapa_separado-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#mapa_separado"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="mapa_separado-91"><a href="#mapa_separado-91"><span class="linenos"> 91</span></a><span class="k">def</span><span class="w"> </span><span class="nf">mapa_separado</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">vista</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">folium</span><span class="o">.</span><span class="n">Map</span><span class="p">:</span>
+</span><span id="mapa_separado-92"><a href="#mapa_separado-92"><span class="linenos"> 92</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="mapa_separado-93"><a href="#mapa_separado-93"><span class="linenos"> 93</span></a><span class="sd">    Mapa autónomo con una sola vista de `VISTAS`, para compartirlo como archivo suelto.</span>
+</span><span id="mapa_separado-94"><a href="#mapa_separado-94"><span class="linenos"> 94</span></a>
+</span><span id="mapa_separado-95"><a href="#mapa_separado-95"><span class="linenos"> 95</span></a><span class="sd">    - `puntos`: las capas de nivel con su leyenda; `clusters`: todos los registros. Las dos</span>
+</span><span id="mapa_separado-96"><a href="#mapa_separado-96"><span class="linenos"> 96</span></a><span class="sd">      llevan el contorno de las comunas si se dan `poligonos`, y con `sin_municipio` excluyen</span>
+</span><span id="mapa_separado-97"><a href="#mapa_separado-97"><span class="linenos"> 97</span></a><span class="sd">      el nivel MUNICIPIO.</span>
+</span><span id="mapa_separado-98"><a href="#mapa_separado-98"><span class="linenos"> 98</span></a><span class="sd">    - `barrios_cantidad` y `comunas_cantidad`: la capa coloreada, encuadrada en Medellín.</span>
+</span><span id="mapa_separado-99"><a href="#mapa_separado-99"><span class="linenos"> 99</span></a><span class="sd">      Necesitan `poligonos`.</span>
+</span><span id="mapa_separado-100"><a href="#mapa_separado-100"><span class="linenos">100</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="mapa_separado-101"><a href="#mapa_separado-101"><span class="linenos">101</span></a>    <span class="k">if</span> <span class="n">vista</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VISTAS</span><span class="p">:</span>
+</span><span id="mapa_separado-102"><a href="#mapa_separado-102"><span class="linenos">102</span></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;vista desconocida: </span><span class="si">{</span><span class="n">vista</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="mapa_separado-103"><a href="#mapa_separado-103"><span class="linenos">103</span></a>    <span class="k">if</span> <span class="n">vista</span> <span class="ow">in</span> <span class="n">VISTAS_COLOREADAS</span><span class="p">:</span>
+</span><span id="mapa_separado-104"><a href="#mapa_separado-104"><span class="linenos">104</span></a>        <span class="k">if</span> <span class="n">poligonos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="mapa_separado-105"><a href="#mapa_separado-105"><span class="linenos">105</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;la vista &#39;</span><span class="si">{</span><span class="n">vista</span><span class="si">}</span><span class="s2">&#39; necesita los polígonos de Medellín&quot;</span><span class="p">)</span>
+</span><span id="mapa_separado-106"><a href="#mapa_separado-106"><span class="linenos">106</span></a>        <span class="n">mapa</span> <span class="o">=</span> <span class="n">_mapa_encuadrado</span><span class="p">(</span><span class="n">poligonos</span><span class="o">.</span><span class="n">limites_wgs84</span><span class="p">())</span>
+</span><span id="mapa_separado-107"><a href="#mapa_separado-107"><span class="linenos">107</span></a>        <span class="n">nombre</span> <span class="o">=</span> <span class="n">BARRIOS_CANTIDAD</span> <span class="k">if</span> <span class="n">vista</span> <span class="o">==</span> <span class="s2">&quot;barrios_cantidad&quot;</span> <span class="k">else</span> <span class="n">COMUNAS_CANTIDAD</span>
+</span><span id="mapa_separado-108"><a href="#mapa_separado-108"><span class="linenos">108</span></a>        <span class="n">_coloreada</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="mapa_separado-109"><a href="#mapa_separado-109"><span class="linenos">109</span></a>        <span class="k">return</span> <span class="n">mapa</span>
+</span><span id="mapa_separado-110"><a href="#mapa_separado-110"><span class="linenos">110</span></a>
+</span><span id="mapa_separado-111"><a href="#mapa_separado-111"><span class="linenos">111</span></a>    <span class="k">if</span> <span class="n">sin_municipio</span><span class="p">:</span>
+</span><span id="mapa_separado-112"><a href="#mapa_separado-112"><span class="linenos">112</span></a>        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Nivel ubicacion&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">MUNICIPIO</span><span class="p">]</span>
+</span><span id="mapa_separado-113"><a href="#mapa_separado-113"><span class="linenos">113</span></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">_con_coordenadas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span id="mapa_separado-114"><a href="#mapa_separado-114"><span class="linenos">114</span></a>    <span class="n">mapa</span> <span class="o">=</span> <span class="n">_mapa_encuadrado</span><span class="p">(</span><span class="n">_limites_puntos</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+</span><span id="mapa_separado-115"><a href="#mapa_separado-115"><span class="linenos">115</span></a>    <span class="k">if</span> <span class="n">poligonos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="mapa_separado-116"><a href="#mapa_separado-116"><span class="linenos">116</span></a>        <span class="n">_contornos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">barrios</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="mapa_separado-117"><a href="#mapa_separado-117"><span class="linenos">117</span></a>    <span class="k">if</span> <span class="n">vista</span> <span class="o">==</span> <span class="s2">&quot;puntos&quot;</span><span class="p">:</span>
+</span><span id="mapa_separado-118"><a href="#mapa_separado-118"><span class="linenos">118</span></a>        <span class="n">_capas_puntos</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
+</span><span id="mapa_separado-119"><a href="#mapa_separado-119"><span class="linenos">119</span></a>        <span class="n">_leyenda_niveles</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="mapa_separado-120"><a href="#mapa_separado-120"><span class="linenos">120</span></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="mapa_separado-121"><a href="#mapa_separado-121"><span class="linenos">121</span></a>        <span class="n">_clusters</span><span class="p">(</span><span class="n">mapa</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">CLUSTERS</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">sin_municipio</span> <span class="k">else</span> <span class="n">CLUSTERS_SIN_MUNICIPIO</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="mapa_separado-122"><a href="#mapa_separado-122"><span class="linenos">122</span></a>    <span class="n">folium</span><span class="o">.</span><span class="n">LayerControl</span><span class="p">(</span><span class="n">collapsed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">add_to</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+</span><span id="mapa_separado-123"><a href="#mapa_separado-123"><span class="linenos">123</span></a>    <span class="k">return</span> <span class="n">mapa</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Mapa autónomo con una sola vista de <code><a href="#VISTAS">VISTAS</a></code>, para compartirlo como archivo suelto.</p>
+
+<ul>
+<li><code>puntos</code>: las capas de nivel con su leyenda; <code>clusters</code>: todos los registros. Las dos
+llevan el contorno de las comunas si se dan <code>poligonos</code>, y con <code>sin_municipio</code> excluyen
+el nivel MUNICIPIO.</li>
+<li><code>barrios_cantidad</code> y <code>comunas_cantidad</code>: la capa coloreada, encuadrada en Medellín.
+Necesitan <code>poligonos</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="nombre_separado">
+                            <input id="nombre_separado-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">nombre_separado</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">vista</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">sin_municipio</span><span class="p">:</span> <span class="nb">bool</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+                <label class="view-source-button" for="nombre_separado-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#nombre_separado"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="nombre_separado-126"><a href="#nombre_separado-126"><span class="linenos">126</span></a><span class="k">def</span><span class="w"> </span><span class="nf">nombre_separado</span><span class="p">(</span><span class="n">vista</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="nombre_separado-127"><a href="#nombre_separado-127"><span class="linenos">127</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Nombre del archivo de un separado: `&lt;vista&gt;.html` o `&lt;vista&gt;_sin_municipio.html`.&quot;&quot;&quot;</span>
+</span><span id="nombre_separado-128"><a href="#nombre_separado-128"><span class="linenos">128</span></a>    <span class="n">sufijo</span> <span class="o">=</span> <span class="s2">&quot;_sin_municipio&quot;</span> <span class="k">if</span> <span class="n">sin_municipio</span> <span class="ow">and</span> <span class="n">vista</span> <span class="ow">in</span> <span class="n">VISTAS_DE_PUNTOS</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+</span><span id="nombre_separado-129"><a href="#nombre_separado-129"><span class="linenos">129</span></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vista</span><span class="si">}{</span><span class="n">sufijo</span><span class="si">}</span><span class="s2">.html&quot;</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Nombre del archivo de un separado: <code>&lt;vista&gt;.html</code> o <code>&lt;vista&gt;_sin_municipio.html</code>.</p>
+</div>
+
+
+                </section>
+                <section id="generar">
+                            <input id="generar-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">generar</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">df</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>,</span><span class="param">	<span class="n">carpeta</span>,</span><span class="param">	<span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">	<span class="n">separados</span><span class="o">=</span><span class="p">()</span>,</span><span class="param">	<span class="n">sin_municipio</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">]</span>:</span></span>
+
+                <label class="view-source-button" for="generar-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#generar"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="generar-132"><a href="#generar-132"><span class="linenos">132</span></a><span class="k">def</span><span class="w"> </span><span class="nf">generar</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">carpeta</span><span class="p">,</span> <span class="n">poligonos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">separados</span><span class="o">=</span><span class="p">(),</span> <span class="n">sin_municipio</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span id="generar-133"><a href="#generar-133"><span class="linenos">133</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="generar-134"><a href="#generar-134"><span class="linenos">134</span></a><span class="sd">    Escribe `carpeta/mapa.html` y, por cada vista de `separados`, `carpeta/separados/&lt;archivo&gt;`</span>
+</span><span id="generar-135"><a href="#generar-135"><span class="linenos">135</span></a><span class="sd">    (ver `nombre_separado`). Construye todos los mapas antes de escribir el primero, así que un</span>
+</span><span id="generar-136"><a href="#generar-136"><span class="linenos">136</span></a><span class="sd">    error no deja archivos a medias. Devuelve las rutas escritas.</span>
+</span><span id="generar-137"><a href="#generar-137"><span class="linenos">137</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="generar-138"><a href="#generar-138"><span class="linenos">138</span></a>    <span class="n">carpeta</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">carpeta</span><span class="p">)</span>
+</span><span id="generar-139"><a href="#generar-139"><span class="linenos">139</span></a>    <span class="n">mapas</span> <span class="o">=</span> <span class="p">[(</span><span class="n">carpeta</span> <span class="o">/</span> <span class="s2">&quot;mapa.html&quot;</span><span class="p">,</span> <span class="n">mapa_con_capas</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">))]</span>
+</span><span id="generar-140"><a href="#generar-140"><span class="linenos">140</span></a>    <span class="k">for</span> <span class="n">vista</span> <span class="ow">in</span> <span class="n">separados</span><span class="p">:</span>
+</span><span id="generar-141"><a href="#generar-141"><span class="linenos">141</span></a>        <span class="n">mapas</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">carpeta</span> <span class="o">/</span> <span class="n">CARPETA_SEPARADOS</span> <span class="o">/</span> <span class="n">nombre_separado</span><span class="p">(</span><span class="n">vista</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="p">),</span>
+</span><span id="generar-142"><a href="#generar-142"><span class="linenos">142</span></a>                      <span class="n">mapa_separado</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">vista</span><span class="p">,</span> <span class="n">poligonos</span><span class="p">,</span> <span class="n">sin_municipio</span><span class="p">)))</span>
+</span><span id="generar-143"><a href="#generar-143"><span class="linenos">143</span></a>    <span class="k">for</span> <span class="n">ruta</span><span class="p">,</span> <span class="n">mapa</span> <span class="ow">in</span> <span class="n">mapas</span><span class="p">:</span>
+</span><span id="generar-144"><a href="#generar-144"><span class="linenos">144</span></a>        <span class="n">ruta</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="generar-145"><a href="#generar-145"><span class="linenos">145</span></a>        <span class="n">mapa</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">ruta</span><span class="p">)</span>
+</span><span id="generar-146"><a href="#generar-146"><span class="linenos">146</span></a>    <span class="k">return</span> <span class="p">[</span><span class="n">ruta</span> <span class="k">for</span> <span class="n">ruta</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">mapas</span><span class="p">]</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Escribe <code>carpeta/mapa.html</code> y, por cada vista de <code>separados</code>, <code>carpeta/separados/&lt;archivo&gt;</code>
+(ver <code><a href="#nombre_separado">nombre_separado</a></code>). Construye todos los mapas antes de escribir el primero, así que un
+error no deja archivos a medias. Devuelve las rutas escritas.</p>
+</div>
+
+
+                </section>
+                <section id="diametro">
+                            <input id="diametro-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">diametro</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">registros</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+
+                <label class="view-source-button" for="diametro-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#diametro"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="diametro-149"><a href="#diametro-149"><span class="linenos">149</span></a><span class="k">def</span><span class="w"> </span><span class="nf">diametro</span><span class="p">(</span><span class="n">registros</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="diametro-150"><a href="#diametro-150"><span class="linenos">150</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Diámetro en píxeles del círculo de un punto con `registros` registros.&quot;&quot;&quot;</span>
+</span><span id="diametro-151"><a href="#diametro-151"><span class="linenos">151</span></a>    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">DIAMETRO_MINIMO</span> <span class="o">+</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">registros</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">DIAMETRO_MAXIMO</span><span class="p">)</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Diámetro en píxeles del círculo de un punto con <code>registros</code> registros.</p>
+</div>
+
+
+                </section>
+                <section id="cantidades">
+                            <input id="cantidades-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cantidades</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">df</span>, </span><span class="param"><span class="n">nombre</span></span><span class="return-annotation">):</span></span>
+
+                <label class="view-source-button" for="cantidades-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#cantidades"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="cantidades-241"><a href="#cantidades-241"><span class="linenos">241</span></a><span class="k">def</span><span class="w"> </span><span class="nf">cantidades</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">nombre</span><span class="p">):</span>
+</span><span id="cantidades-242"><a href="#cantidades-242"><span class="linenos">242</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Registros por polígono de la capa coloreada `nombre`: {codigo de barrio o comuna: registros}.&quot;&quot;&quot;</span>
+</span><span id="cantidades-243"><a href="#cantidades-243"><span class="linenos">243</span></a>    <span class="n">_</span><span class="p">,</span> <span class="n">columna</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">COLOREADAS</span><span class="p">[</span><span class="n">nombre</span><span class="p">]</span>
+</span><span id="cantidades-244"><a href="#cantidades-244"><span class="linenos">244</span></a>    <span class="k">if</span> <span class="n">columna</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span id="cantidades-245"><a href="#cantidades-245"><span class="linenos">245</span></a>        <span class="k">return</span> <span class="p">{}</span>
+</span><span id="cantidades-246"><a href="#cantidades-246"><span class="linenos">246</span></a>    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">columna</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Registros por polígono de la capa coloreada <code>nombre</code>: {codigo de barrio o comuna: registros}.</p>
 </div>
 
 
