@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Nombres de archivos generados en ASCII
-Todos los nombres de archivos y directorios que el sistema genera SHALL estar formados solo por caracteres ASCII. La estandarización SHALL escribir en `estandarizado/` los archivos `total_area_metropolitana.xlsx`, `principales_area_metropolitana.xlsx`, `especiales_area_metropolitana.xlsx` y `fuera_area_metropolitana.xlsx`. Las coordenadas y los mapas de un área se nombran con el identificador del área: `area_metropolitana` o el nombre de un subconjunto. Las consultas al proveedor escriben `coordenadas/cache_consultas.csv` y `coordenadas/registro_consultas.csv`.
+Los nombres de los archivos y directorios que genera el sistema SHALL ser solo ASCII. La estandarización SHALL escribir en `estandarizado/` `total_area_metropolitana.xlsx`, `principales_area_metropolitana.xlsx`, `especiales_area_metropolitana.xlsx` y `fuera_area_metropolitana.xlsx`. Las coordenadas y los mapas se nombran con el identificador del área (`area_metropolitana` o un subconjunto). Las consultas al proveedor escriben `cache_consultas.csv` y `registro_consultas.csv` en `coordenadas/`.
 
 #### Scenario: Estandarización
 - **WHEN** el usuario ejecuta la estandarización de direcciones
@@ -18,7 +18,7 @@ Todos los nombres de archivos y directorios que el sistema genera SHALL estar fo
 - **THEN** el sistema escribe `coordenadas/coordenadas_medellin.xlsx` y los cuatro mapas en `mapas/medellin/` y `mapas/medellin/filtrados/`, todos con nombres ASCII
 
 ### Requirement: Lectura entre etapas con nombres ASCII
-La ubicación SHALL leer `estandarizado/principales_area_metropolitana.xlsx` y `estandarizado/especiales_area_metropolitana.xlsx`, con `Codigo barrio` como texto, y escribir de nuevo y por completo `coordenadas/coordenadas_area_metropolitana.xlsx` en cada ejecución. Lo ya consultado se recupera de la caché, no del archivo de coordenadas. Los mapas y los subconjuntos leen ese archivo. Si falta un archivo de entrada, el sistema MUST terminar con un mensaje que pida ejecutar primero la estandarización.
+La ubicación SHALL leer `estandarizado/principales_area_metropolitana.xlsx` y `estandarizado/especiales_area_metropolitana.xlsx`, con `Codigo barrio` como texto, y escribir de nuevo y por completo `coordenadas/coordenadas_area_metropolitana.xlsx` en cada ejecución. Los mapas y los subconjuntos leen ese archivo. Si falta un archivo de entrada, el sistema MUST terminar con un mensaje que pida ejecutar primero la estandarización.
 
 #### Scenario: Primera conversión tras estandarizar
 - **WHEN** existen los archivos de principales y especiales, no existe `coordenadas/coordenadas_area_metropolitana.xlsx` y el usuario ejecuta la ubicación

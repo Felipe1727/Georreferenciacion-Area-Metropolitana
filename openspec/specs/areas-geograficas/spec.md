@@ -7,7 +7,7 @@ Define el área metropolitana como el universo de registros que el sistema estan
 ## Requirements
 
 ### Requirement: Área metropolitana como universo de trabajo
-La estandarización SHALL separar los registros según el municipio de residencia: los que figuran en la lista de municipios del área metropolitana de la configuración forman el área metropolitana, y todos los demás, incluidos los que no tienen municipio, quedan fuera. Solo los registros del área metropolitana pasan a las etapas de geocodificación, mejora y mapas.
+La estandarización SHALL separar los registros según el municipio de residencia: los que figuran en la lista de municipios del área metropolitana de la configuración forman el área metropolitana, y todos los demás, incluidos los que no tienen municipio, quedan fuera. Solo los registros del área metropolitana, de vía principal y especiales, pasan a las etapas de ubicación y mapas.
 
 #### Scenario: Separación por municipio
 - **WHEN** el archivo de entrada tiene registros de Medellín, Envigado, Rionegro y Montería, y la configuración incluida define el área metropolitana
@@ -16,6 +16,10 @@ La estandarización SHALL separar los registros según el municipio de residenci
 #### Scenario: Registro sin municipio
 - **WHEN** un registro tiene vacía la columna de ciudad
 - **THEN** el registro va a `fuera_area_metropolitana.xlsx`
+
+#### Scenario: Registros especiales en la ubicación
+- **WHEN** el área metropolitana tiene registros en `especiales_area_metropolitana.xlsx` y el usuario ejecuta la ubicación
+- **THEN** esos registros aparecen en el archivo de coordenadas con un punto y su nivel de ubicación
 
 ### Requirement: Los registros de fuera solo se exportan
 Los registros de fuera del área metropolitana SHALL exportarse a `estandarizado/fuera_area_metropolitana.xlsx` con la misma normalización que los del área metropolitana (dirección, complemento y zona, sin barrio ni comuna), y MUST NOT enviarse al proveedor de geocodificación en ninguna operación.

@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Archivo de configuración versionado
-El sistema SHALL leer su configuración de `config/georef.toml`, un archivo TOML en UTF-8 versionado en el repositorio. Debe contener la lista de municipios del área metropolitana, los subconjuntos con nombre, los nombres de las columnas de ciudad y dirección del archivo de entrada, el vocabulario de direcciones (tipos de vía, palabras clave y equivalencias), las referencias geográficas (rutas del GeoJSON y de las tablas de alias, y el municipio al que corresponden los polígonos), los parámetros de la ubicación y, una vez consultados, los puntos de los municipios.
+El sistema SHALL leer su configuración de `config/georef.toml`, un archivo TOML en UTF-8 versionado en el repositorio. Debe contener los municipios del área metropolitana, los subconjuntos con nombre, las columnas de ciudad y dirección del archivo de entrada, el vocabulario de direcciones, las referencias geográficas, los parámetros de la ubicación y, una vez consultados, los puntos de los municipios.
 
 #### Scenario: Ejecución con la configuración incluida
 - **WHEN** el usuario ejecuta cualquier operación sin indicar otra configuración
